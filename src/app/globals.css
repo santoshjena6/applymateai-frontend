@@ -1,26 +1,93 @@
 @import "tailwindcss";
 
+@theme {
+  --color-primary: #2563eb;
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-900: #0f172a;
+
+  --font-jakarta: "Plus Jakarta Sans", sans-serif;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --border: #f1f5f9;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Force standard standard font styles */
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-jakarta), sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* High-contrast headings */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: #0f172a !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.025em !important;
+}
+
+/* Clean up glass utility */
+.glass {
+  background: #ffffff;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+}
+
+/* Ensure inputs are clearly visible */
+input,
+select,
+textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #f1f5f9 !important;
+}
+
+::selection {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+@keyframes shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(100%);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@keyframes scan {
+  0% {
+    top: 0%;
+    box-shadow: 0 0 20px 6px rgba(59, 130, 246, 0.2);
+  }
+
+  50% {
+    top: 100%;
+    box-shadow: 0 0 25px 8px rgba(59, 130, 246, 0.6);
+  }
+
+  100% {
+    top: 0%;
+    box-shadow: 0 0 20px 6px rgba(59, 130, 246, 0.2);
+  }
+}
+
+.animate-scan {
+  animation: scan 3s ease-in-out infinite;
 }
