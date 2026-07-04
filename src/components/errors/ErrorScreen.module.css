@@ -1,0 +1,392 @@
+.pageContainer {
+  font-family: var(--font-poppins, 'Poppins'), sans-serif;
+  background-color: #FAFBFF;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  color: #1a1a2e;
+  overflow: hidden;
+}
+
+/* Navbar */
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 64px;
+  background-color: transparent;
+}
+
+.logoContainer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logoIcon {
+  width: 32px;
+  height: 32px;
+}
+
+.logoText {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a2e;
+  letter-spacing: -0.5px;
+}
+
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.navLink, .navDropdown {
+  font-size: 15px;
+  font-weight: 500;
+  color: #4a5568;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.navLink:hover, .navDropdown:hover {
+  color: #6366f1;
+}
+
+.dropdownArrow {
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+.dashboardBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #F3F4F6;
+  color: #4f46e5;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.dashboardBtn:hover {
+  background-color: #EEF2FF;
+}
+
+.dashboardIcon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Main Content */
+.mainContent {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 64px;
+  gap: 80px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.textContent {
+  flex: 1;
+  max-width: 500px;
+}
+
+.errorCode {
+  font-size: 160px;
+  font-weight: 700;
+  color: #6366f1;
+  line-height: 1;
+  margin: 0 0 16px 0;
+  letter-spacing: -4px;
+}
+
+.errorTitle {
+  font-size: 42px;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0 0 16px 0;
+  line-height: 1.2;
+}
+
+.errorMessage {
+  font-size: 16px;
+  font-weight: 400;
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0 0 24px 0;
+  white-space: pre-line;
+}
+
+.errorBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  padding: 12px 24px;
+  border-radius: 8px;
+  color: #6366f1;
+  font-weight: 500;
+  font-size: 15px;
+  margin-bottom: 40px;
+}
+
+.infoIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background-color: #E0E7FF;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 16px;
+}
+
+.primaryBtn, .secondaryBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  text-decoration: none;
+}
+
+.primaryBtn {
+  background-color: #6366f1;
+  color: white;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
+}
+
+.primaryBtn:hover {
+  background-color: #4f46e5;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.4);
+}
+
+.secondaryBtn {
+  background-color: transparent;
+  color: #6366f1;
+  border: 1.5px solid #E0E7FF;
+}
+
+.secondaryBtn:hover {
+  background-color: #EEF2FF;
+  border-color: #C7D2FE;
+}
+
+.btnIcon {
+  width: 20px;
+  height: 20px;
+}
+
+.supportContainer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 48px;
+}
+
+.supportIconWrapper {
+  width: 48px;
+  height: 48px;
+  background-color: #F8FAFC;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.supportTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0F172A;
+  margin-bottom: 4px;
+}
+
+.supportLink {
+  font-size: 14px;
+  font-weight: 500;
+  color: #6366f1;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.supportLink:hover {
+  text-decoration: underline;
+}
+
+.supportArrow {
+  font-size: 16px;
+}
+
+.imageContent {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.illustration {
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Feature Banner */
+.featureBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  margin: 0 64px 48px;
+  padding: 32px 48px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+}
+
+.bannerItem {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.bannerIconWrapper {
+  width: 48px;
+  height: 48px;
+  background-color: #EEF2FF;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bannerText {
+  font-size: 15px;
+  font-weight: 500;
+  color: #334155;
+  line-height: 1.4;
+}
+
+.highlightText {
+  color: #6366f1;
+  font-weight: 600;
+}
+
+.bannerTextSmall {
+  font-size: 14px;
+  font-weight: 500;
+  color: #475569;
+  line-height: 1.4;
+}
+
+.divider {
+  width: 1px;
+  height: 48px;
+  background-color: #E2E8F0;
+}
+
+/* Footer */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 64px 32px;
+  border-top: 1px solid #F1F5F9;
+}
+
+.copyright {
+  font-size: 13px;
+  color: #94A3B8;
+  font-weight: 400;
+}
+
+.footerLinks {
+  display: flex;
+  gap: 32px;
+}
+
+.footerLinks a {
+  font-size: 13px;
+  color: #64748B;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.footerLinks a:hover {
+  color: #334155;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .mainContent {
+    flex-direction: column;
+    text-align: center;
+    gap: 40px;
+    padding: 32px;
+  }
+  
+  .textContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .featureBanner {
+    flex-direction: column;
+    gap: 24px;
+    align-items: flex-start;
+  }
+  
+  .divider {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .navbar {
+    padding: 16px 24px;
+  }
+  .navLinks {
+    display: none;
+  }
+  .errorCode {
+    font-size: 100px;
+  }
+  .errorTitle {
+    font-size: 28px;
+  }
+  .featureBanner {
+    margin: 0 24px 24px;
+    padding: 24px;
+  }
+  .footer {
+    padding: 24px;
+    flex-direction: column;
+    gap: 16px;
+  }
+}

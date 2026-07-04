@@ -1,218 +1,252 @@
 "use client";
 
+// Dashboard — KPI cards, activity chart, and recent applications table
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
-import StatsCard from "@/components/StatsCard";
-import ApplicationTable from "@/components/ApplicationTable";
-import JobCard from "@/components/JobCard";
-import ResumeScoreWidget from "@/components/ResumeScoreWidget";
-import JobMatchInsights from "@/components/JobMatchInsights";
+import KpiCard from "@/components/KpiCard";
+import StatusChip from "@/components/StatusChip";
+import SkeletonLoader from "@/components/SkeletonLoader";
 import {
     BriefcaseIcon,
     CheckCircleIcon,
     UserGroupIcon,
     ChatBubbleLeftRightIcon,
-    SparklesIcon,
-    RocketLaunchIcon,
-    BellIcon
+    BellIcon,
+    DocumentArrowUpIcon,
 } from "@heroicons/react/24/outline";
 import {
-    AreaChart,
-    Area,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
+import { applicationService } from "@/services/api";
+import { getErrorMessage } from "@/utils/errorMessage";
 
-const data = [
-    { name: "Mon", apps: 4 },
-    { name: "Tue", apps: 7 },
-    { name: "Wed", apps: 5 },
-    { name: "Thu", apps: 12 },
-    { name: "Fri", apps: 9 },
-    { name: "Sat", apps: 3 },
-    { name: "Sun", apps: 2 },
-];
-
-const recommendedJobs = [
-    { id: 1, title: "Senior Frontend Engineer", company: "Stripe", location: "Global / Remote", matchScore: 98, tags: ["Product", "Next.js", "Systems"] },
-    { id: 2, title: "Product Designer", company: "Vercel", location: "San Francisco, CA", matchScore: 95, tags: ["UI/UX", "Design Systems", "Brand"] },
-];
-
-const recentApplications = [
-    { company: "Google", position: "Senior Frontend Engineer", date: "Mar 08, 2026", status: "Interviewing" },
-    { company: "Stripe", position: "Product Designer", date: "Mar 07, 2026", status: "Applied" },
-    { company: "Vercel", position: "Fullstack Developer", date: "Mar 05, 2026", status: "Offer" },
-    { company: "Linear", position: "Software Engineer", date: "Mar 02, 2026", status: "Rejected" },
+// Mock weekly chart data (replaced by real data when API is ready)
+const chartData = [
+    { name: "Mon", apps: 4 }, { name: "Tue", apps: 7 }, { name: "Wed", apps: 5 },
+    { name: "Thu", apps: 12 }, { name: "Fri", apps: 9 }, { name: "Sat", apps: 3 }, { name: "Sun", apps: 2 },
 ];
 
 export default function DashboardPage() {
+    const router = useRouter();
+    const [stats, setStats]     = useState(null);
+    const [apps, setApps]       = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError]     = useState("");
+    const [userName, setUserName] = useState("there");
+
+    useEffect(() => {
+        // OAuth callback — Spring Boot redirects here with ?token=<jwt>
+        // Save it to localStorage then clean the URL so it doesn't persist on refresh
+        const params = new URLSearchParams(window.location.search);
+        const oauthToken = params.get("token");
+        if (oauthToken) {
+            localStorage.setItem("applync_token", oauthToken);
+            router.replace("/dashboard");
+            return;
+        }
+
+        // Auth guard — redirect if no token
+        const token = localStorage.getItem("applync_token");
+        if (!token) { router.replace("/login"); return; }
+
+        // Read user name from storage
+        try {
+            const raw = localStorage.getItem("applync_user");
+            if (raw) {
+                const u = JSON.parse(raw);
+                setUserName(u.name || "there");
+            }
+        } catch {}
+
+        // Fetch stats and recent applications
+        const fetchData = async () => {
+            try {
+                const [statsRes, appsRes] = await Promise.all([
+                    applicationService.getStats(),
+                    applicationService.getAll(),
+                ]);
+                setStats(statsRes.data);
+                setApps((appsRes.data || []).slice(0, 5));
+            } catch (err) {
+                if (err.response?.status !== 401) {
+                    setError(getErrorMessage(err));
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [router]);
+
     return (
-        <div className="flex min-h-screen bg-white">
+        <div className="flex min-h-screen" style={{ backgroundColor: "#F8FAFC" }}>
             <Sidebar />
 
-            <main className="flex-1 lg:ml-64 p-8 overflow-x-hidden">
-                {/* Header */}
-                <header className="flex flex-col md:flex-row items-center justify-between mb-10 gap-4">
-                    <div>
-                        <h1 className="text-3xl font-black tracking-tight text-slate-900">Dashboard</h1>
-                        <p className="text-slate-400 font-medium mt-1">Ready to find your next career move, John?</p>
-                    </div>
+            {/* Main content — offset by sidebar width on large screens */}
+            <main className="flex-1 lg:ml-64 p-6 lg:p-8 overflow-x-hidden">
 
-                    <div className="flex items-center space-x-4">
-                        <button className="relative p-2.5 bg-white rounded-xl border border-slate-100 text-slate-400 hover:text-blue-500 transition-all shadow-sm">
-                            <BellIcon className="w-5 h-5" />
-                            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white" />
+                {/* ── Page Header ── */}
+                <header className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
+                    <div>
+                        <h1 className="text-2xl font-black" style={{ color: "#111827" }}>Dashboard</h1>
+                        <p className="text-sm mt-0.5" style={{ color: "#6B7280" }}>
+                            Welcome back, <span style={{ color: "#4F46E5", fontWeight: 700 }}>{userName}</span> 👋
+                        </p>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                        {/* Notification bell */}
+                        <button
+                            className="relative p-2.5 rounded-xl bg-white transition-colors hover:bg-gray-50"
+                            style={{ border: "1px solid #E5E7EB" }}
+                        >
+                            <BellIcon className="w-5 h-5" style={{ color: "#6B7280" }} />
+                            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />
                         </button>
-                        <button className="group px-6 py-3 bg-blue-600 text-white font-black text-sm rounded-xl hover:bg-blue-700 transition-all shadow-md flex items-center space-x-2">
-                            <RocketLaunchIcon className="w-4 h-4" />
-                            <span>Start Auto Apply</span>
+                        {/* Upload resume CTA */}
+                        <button
+                            onClick={() => router.push("/resume-upload")}
+                            className="flex items-center space-x-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white brand-gradient hover:opacity-90 transition-all"
+                        >
+                            <DocumentArrowUpIcon className="w-4 h-4" />
+                            <span>Upload Resume</span>
                         </button>
                     </div>
                 </header>
 
-                {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-                    <StatsCard
-                        title="Total Found"
-                        value="1,248"
-                        trend="12%"
-                        trendType="up"
-                        icon={BriefcaseIcon}
-                    />
-                    <StatsCard
-                        title="Total Applied"
-                        value="42"
-                        trend="18%"
-                        trendType="up"
-                        icon={CheckCircleIcon}
-                    />
-                    <StatsCard
-                        title="Interviews"
-                        value="8"
-                        trend="5%"
-                        trendType="up"
-                        icon={ChatBubbleLeftRightIcon}
-                    />
-                    <StatsCard
-                        title="Success Rate"
-                        value="85%"
-                        trend="2%"
-                        trendType="up"
-                        icon={UserGroupIcon}
-                    />
+                {/* API error banner */}
+                {error && (
+                    <div
+                        className="mb-6 px-4 py-3 rounded-xl text-sm font-medium"
+                        style={{ backgroundColor: "#FEF3C7", color: "#D97706", border: "1px solid #FDE68A" }}
+                    >
+                        {error}
+                    </div>
+                )}
+
+                {/* ── KPI Cards ── */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+                    <KpiCard loading={loading} title="Total Applied"  value={stats?.totalApplied} trend="18%" trendType="up"   icon={CheckCircleIcon}           />
+                    <KpiCard loading={loading} title="In Review"      value={stats?.inProgress}   trend="12%" trendType="up"   icon={BriefcaseIcon}             />
+                    <KpiCard loading={loading} title="Interviews"     value={stats?.interviews}   trend="5%"  trendType="up"   icon={ChatBubbleLeftRightIcon}   />
+                    <KpiCard loading={loading} title="Offers"         value={stats?.offers ?? 0}  trend="2%"  trendType="up"   icon={UserGroupIcon}             />
                 </div>
 
-                <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 mb-10">
-                    {/* Main Chart Section */}
-                    <div className="xl:col-span-8 bg-white p-8 rounded-2xl border border-slate-100 shadow-sm">
-                        <div className="flex items-center justify-between mb-8">
-                            <div>
-                                <h3 className="text-lg font-black text-slate-900">Application Activity</h3>
-                                <p className="text-xs font-medium text-slate-400 mt-1">Tracking your daily application volume</p>
-                            </div>
-                            <select className="bg-white border border-slate-100 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 focus:outline-none focus:border-blue-200 shadow-sm">
-                                <option>MAR 2026</option>
-                                <option>FEB 2026</option>
-                            </select>
-                        </div>
-
-                        <div className="h-[300px] w-full mt-4">
-                            <ResponsiveContainer width="100%" height={300}>
-                                <AreaChart data={data}>
-                                    <defs>
-                                        <linearGradient id="colorApps" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1} />
-                                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                    <XAxis
-                                        dataKey="name"
-                                        axisLine={false}
-                                        tickLine={false}
-                                        tick={{ fill: "#64748b", fontSize: 10, fontWeight: "600" }}
-                                    />
-                                    <YAxis
-                                        axisLine={false}
-                                        tickLine={false}
-                                        tick={{ fill: "#64748b", fontSize: 10, fontWeight: "600" }}
-                                    />
-                                    <Tooltip
-                                        cursor={{ stroke: '#3b82f6', strokeWidth: 2, strokeDasharray: '5 5' }}
-                                        contentStyle={{
-                                            backgroundColor: "#ffffff",
-                                            borderRadius: "12px",
-                                            border: "1px solid #f1f5f9",
-                                            boxShadow: "0 10px 15px -3px rgba(0,0,0,0.05)",
-                                            fontSize: '12px',
-                                            fontWeight: '700'
-                                        }}
-                                    />
-                                    <Area
-                                        type="monotone"
-                                        dataKey="apps"
-                                        stroke="#3b82f6"
-                                        strokeWidth={3}
-                                        fillOpacity={1}
-                                        fill="url(#colorApps)"
-                                    />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </div>
-
-                    {/* AI Insights & Suggestions */}
-                    <div className="xl:col-span-4 flex flex-col gap-6">
-                        <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-4 opacity-5">
-                                <SparklesIcon className="w-16 h-16 text-slate-900" />
-                            </div>
-                            <div className="flex items-center space-x-2 mb-6">
-                                <SparklesIcon className="w-4 h-4 text-blue-600" />
-                                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest">AI Target Recommendation</h3>
-                            </div>
-                            <p className="text-sm font-medium text-slate-500 leading-relaxed mb-8 relative z-10">
-                                Based on your profile, <span className="text-blue-600 font-bold underline decoration-blue-600/30">Stripe</span> is looking for candidates with your exact Next.js expertise.
-                            </p>
-                            <button className="w-full py-4 bg-slate-900 text-white font-bold text-xs rounded-xl hover:bg-black transition-all flex items-center justify-center space-x-2 shadow-md">
-                                <span>Apply Automatically</span>
-                                <RocketLaunchIcon className="w-4 h-4" />
-                            </button>
-                        </div>
-
-                        <JobMatchInsights />
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 mb-10">
-                    {/* Recommended Jobs */}
-                    <div className="xl:col-span-8">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-xl font-black text-slate-900">Recommended Roles</h3>
-                            <button className="text-xs font-bold text-slate-400 hover:text-blue-600 transition-colors">See all matches</button>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {recommendedJobs.map(job => (
-                                <JobCard key={job.id} job={job} />
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Resume Score */}
-                    <div className="xl:col-span-4">
-                        <ResumeScoreWidget score={78} />
-                    </div>
-                </div>
-
-                {/* Recent Applications Table */}
-                <section className="mb-10">
+                {/* ── Activity Chart ── */}
+                <div
+                    className="bg-white rounded-2xl p-6 mb-8"
+                    style={{ border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
+                >
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-xl font-black text-slate-900">Recent Activity</h3>
-                        <button className="text-xs font-bold text-slate-400 hover:text-blue-600 px-4 py-2 bg-slate-50 rounded-lg transition-all border border-slate-100 shadow-sm">View Applications</button>
+                        <div>
+                            <h3 className="text-base font-bold" style={{ color: "#111827" }}>Application Activity</h3>
+                            <p className="text-xs mt-0.5" style={{ color: "#6B7280" }}>Daily applications this week</p>
+                        </div>
+                        <select
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium outline-none"
+                            style={{ border: "1px solid #E5E7EB", color: "#6B7280", backgroundColor: "#FFFFFF" }}
+                        >
+                            <option>This Week</option>
+                            <option>Last Week</option>
+                        </select>
                     </div>
-                    <ApplicationTable applications={recentApplications} />
+                    <ResponsiveContainer width="100%" height={220}>
+                        <AreaChart data={chartData}>
+                            <defs>
+                                <linearGradient id="gradApps" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%"  stopColor="#4F46E5" stopOpacity={0.15} />
+                                    <stop offset="95%" stopColor="#4F46E5" stopOpacity={0}    />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+                            <XAxis
+                                dataKey="name"
+                                axisLine={false} tickLine={false}
+                                tick={{ fill: "#9CA3AF", fontSize: 11, fontWeight: 600 }}
+                            />
+                            <YAxis
+                                axisLine={false} tickLine={false}
+                                tick={{ fill: "#9CA3AF", fontSize: 11, fontWeight: 600 }}
+                            />
+                            <Tooltip
+                                cursor={{ stroke: "#4F46E5", strokeWidth: 1, strokeDasharray: "4 4" }}
+                                contentStyle={{
+                                    backgroundColor: "#FFFFFF",
+                                    border: "1px solid #E5E7EB",
+                                    borderRadius: 12,
+                                    fontSize: 12,
+                                    color: "#111827",
+                                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                                }}
+                            />
+                            <Area
+                                type="monotone" dataKey="apps"
+                                stroke="#4F46E5" strokeWidth={2.5}
+                                fill="url(#gradApps)"
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+
+                {/* ── Recent Applications Table ── */}
+                <section>
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-base font-bold" style={{ color: "#111827" }}>Recent Applications</h3>
+                        <a
+                            href="/applications"
+                            className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                            style={{ color: "#4F46E5", backgroundColor: "#EEF2FF" }}
+                        >
+                            View All
+                        </a>
+                    </div>
+
+                    {/* Table */}
+                    <div
+                        className="bg-white rounded-2xl overflow-hidden"
+                        style={{ border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
+                    >
+                        <table className="w-full">
+                            <thead>
+                                <tr style={{ backgroundColor: "#F9FAFB", borderBottom: "1px solid #E5E7EB" }}>
+                                    {["Company", "Position", "Date", "Status"].map((h) => (
+                                        <th
+                                            key={h}
+                                            className="text-left px-6 py-3 text-xs font-semibold uppercase tracking-wider"
+                                            style={{ color: "#6B7280" }}
+                                        >
+                                            {h}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {loading ? (
+                                    <SkeletonLoader type="table-row" count={4} />
+                                ) : apps.length > 0 ? (
+                                    apps.map((app, i) => (
+                                        <tr
+                                            key={app.id || i}
+                                            className="hover:bg-gray-50 transition-colors"
+                                            style={{ borderBottom: i < apps.length - 1 ? "1px solid #F3F4F6" : "none" }}
+                                        >
+                                            <td className="px-6 py-4 text-sm font-semibold" style={{ color: "#111827" }}>{app.company}</td>
+                                            <td className="px-6 py-4 text-sm" style={{ color: "#6B7280" }}>{app.position || app.role}</td>
+                                            <td className="px-6 py-4 text-xs" style={{ color: "#9CA3AF" }}>{app.date || app.appliedDate}</td>
+                                            <td className="px-6 py-4"><StatusChip status={app.status} /></td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan={4} className="px-6 py-12 text-center text-sm" style={{ color: "#9CA3AF" }}>
+                                            No applications yet.{" "}
+                                            <a href="/jobs" style={{ color: "#4F46E5", fontWeight: 600 }}>Find jobs →</a>
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </section>
             </main>
         </div>

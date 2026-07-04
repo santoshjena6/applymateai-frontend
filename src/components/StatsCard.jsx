@@ -1,30 +1,25 @@
-"use client";
+﻿"use client";
 
 import { ArrowUpIcon, ArrowDownIcon } from "@heroicons/react/24/outline";
 
 const StatsCard = ({ title, value, trend, trendType, icon: Icon }) => {
     return (
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 hover:border-blue-200 transition-all duration-300 group shadow-sm">
+        <div className="p-6 rounded-2xl transition-all duration-300 group"
+            style={{ backgroundColor: "#0f0f1e", border: "1px solid #1e1e3a" }}>
             <div className="flex justify-between items-start">
                 <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</p>
-                    <h3 className="text-2xl font-black mt-1 text-slate-900">{value}</h3>
-
+                    <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "#475569" }}>{title}</p>
+                    <h3 className="text-2xl font-black mt-1" style={{ color: "#e2e8f0" }}>{value}</h3>
                     {trend && (
-                        <div className={`flex items-center mt-2 text-[10px] font-black uppercase tracking-widest ${trendType === "up" ? "text-emerald-600" : "text-rose-600"
-                            }`}>
-                            {trendType === "up" ? (
-                                <ArrowUpIcon className="w-3 h-3 mr-1" />
-                            ) : (
-                                <ArrowDownIcon className="w-3 h-3 mr-1" />
-                            )}
+                        <div className={`flex items-center mt-2 text-[10px] font-black uppercase tracking-widest ${trendType === "up" ? "text-emerald-400" : "text-rose-400"}`}>
+                            {trendType === "up" ? <ArrowUpIcon className="w-3 h-3 mr-1" /> : <ArrowDownIcon className="w-3 h-3 mr-1" />}
                             {trend} vs last month
                         </div>
                     )}
                 </div>
-
-                <div className="p-3 rounded-xl bg-slate-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300 border border-slate-100">
-                    <Icon className="w-5 h-5" />
+                <div className="p-3 rounded-xl transition-all duration-300 group-hover:brand-gradient"
+                    style={{ backgroundColor: "rgba(99,102,241,0.12)", border: "1px solid #1e1e3a" }}>
+                    <Icon className="w-5 h-5" style={{ color: "#6366f1" }} />
                 </div>
             </div>
         </div>

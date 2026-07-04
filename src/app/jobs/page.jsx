@@ -1,183 +1,255 @@
 "use client";
 
-import { useState, useEffect } from "react";
+// Jobs page — search bar, filter tabs, job card grid with skeleton loader
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import ResumeUpload from "@/components/ResumeUpload";
-import FilterPanel from "@/components/FilterPanel";
 import JobCard from "@/components/JobCard";
-import { SparklesIcon, BriefcaseIcon, RocketLaunchIcon } from "@heroicons/react/24/outline";
-import { getFilteredJobs } from "@/services/resumeService";
+import SkeletonLoader from "@/components/SkeletonLoader";
+import { MagnifyingGlassIcon, BriefcaseIcon, AdjustmentsHorizontalIcon } from "@heroicons/react/24/outline";
+import { jobService } from "@/services/api";
+import { getErrorMessage } from "@/utils/errorMessage";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function JobsPage() {
-    const [jobs, setJobs] = useState([]);
-    const [selectedJobIds, setSelectedJobIds] = useState(new Set());
-    const [loading, setLoading] = useState(false);
+// Filter tab definitions
+const TABS = [
+    { key: "ALL",    label: "All Jobs"  },
+    { key: "IT",     label: "IT & Tech" },
+    { key: "NON_IT", label: "Non-IT"   },
+    { key: "REMOTE", label: "Remote"   },
+    { key: "FRESH",  label: "Fresher"  },
+];
+
+function JobsContent() {
+    const searchParams = useSearchParams();
+    const router       = useRouter();
+    const initCategory = searchParams.get("category") || "ALL";
+
+    const [jobs, setJobs]           = useState([]);
+    const [selected, setSelected]   = useState(new Set());
+    const [loading, setLoading]     = useState(false);
+    const [error, setError]         = useState("");
+    const [category, setCategory]   = useState(initCategory);
+    const [search, setSearch]       = useState("");
     const [showUpload, setShowUpload] = useState(false);
+    const [userExperience, setUserExperience] = useState(null); // experienceYears from resume
 
     useEffect(() => {
-        const storedJobs = localStorage.getItem("latestJobResults");
-        if (storedJobs) {
-            setJobs(JSON.parse(storedJobs));
+        // Auth guard
+        const token = localStorage.getItem("applync_token");
+        if (!token) { router.replace("/login"); return; }
+
+        // Auto-select tab based on user's resume category stored in profile
+        let activeCat = initCategory; // from URL ?category= param, or "ALL"
+        if (activeCat === "ALL") {
+            try {
+                const raw = localStorage.getItem("applync_user");
+                if (raw) {
+                    const u = JSON.parse(raw);
+                    if (u.jobCategory === "NON_IT") activeCat = "NON_IT";
+                    else if (u.jobCategory === "IT") activeCat = "IT";
+                    // Read experience for server-side JSearch filtering
+                    if (u.experienceYears != null) setUserExperience(u.experienceYears);
+                }
+            } catch {}
+        }
+        if (activeCat !== category) setCategory(activeCat);
+
+        // Use cached results from resume upload if available
+        const stored = localStorage.getItem("latestJobResults");
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            setJobs(parsed.matchedJobs || []);
+            // Persist jobCategory from upload response so the tab auto-selects on future visits
+            if (parsed.jobCategory) {
+                try {
+                    const raw = localStorage.getItem("applync_user");
+                    const u = raw ? JSON.parse(raw) : {};
+                    u.jobCategory = parsed.jobCategory;
+                    localStorage.setItem("applync_user", JSON.stringify(u));
+                } catch {}
+            }
             localStorage.removeItem("latestJobResults");
-        }
-    }, []);
-
-    const handleFilterChange = async (filters) => {
-        setLoading(true);
-        try {
-            const filteredJobs = await getFilteredJobs(filters);
-            setJobs(filteredJobs);
-        } catch (err) {
-            console.error("Failed to filter jobs", err);
-        } finally {
-            // Simulated delay for premium feel and to show skeleton
-            setTimeout(() => setLoading(false), 600);
-        }
-    };
-
-    const toggleJobSelection = (index, isSelected) => {
-        const newSelection = new Set(selectedJobIds);
-        if (isSelected) {
-            newSelection.add(index);
         } else {
-            newSelection.delete(index);
+            fetchJobs(search, activeCat, userExperience);
         }
-        setSelectedJobIds(newSelection);
+    }, [router]);
+
+    const fetchJobs = async (q = search, cat = category, exp = userExperience) => {
+        setLoading(true);
+        setError("");
+        try {
+            const res = await jobService.searchJobs(q, "", cat === "ALL" ? undefined : cat, exp);
+            setJobs(res.data || []);
+        } catch (err) {
+            if (err.response?.status !== 401)
+                setError(getErrorMessage(err));
+        } finally {
+            setTimeout(() => setLoading(false), 300);
+        }
     };
 
-    const handleAutoApply = () => {
-        if (selectedJobIds.size === 0) return;
-        alert(`Initializing ApplyMate AI to auto-apply to ${selectedJobIds.size} jobs...`);
+    const handleTab    = (cat) => { setCategory(cat); fetchJobs(search, cat, userExperience); };
+    const handleSearch = (e)   => { if (e.key === "Enter") fetchJobs(search); };
+    const toggleSelect = (i, sel) => {
+        const s = new Set(selected);
+        sel ? s.add(i) : s.delete(i);
+        setSelected(s);
     };
 
     return (
-        <div className="flex min-h-screen bg-slate-50/50">
-            <Sidebar />
-
-            <main className="flex-1 lg:ml-64 p-6 lg:p-12">
-                <motion.header
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12"
+        <main className="flex-1 lg:ml-64 p-6 lg:p-8">
+            {/* ── Page Header ── */}
+            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                <div>
+                    <h1 className="text-2xl font-black" style={{ color: "#111827" }}>Browse Jobs</h1>
+                    <p className="text-sm mt-0.5" style={{ color: "#6B7280" }}>
+                        AI-matched opportunities based on your profile.
+                    </p>
+                </div>
+                <button
+                    onClick={() => setShowUpload(!showUpload)}
+                    className="flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-white transition-colors hover:bg-gray-50"
+                    style={{ border: "1px solid #E5E7EB", color: "#374151" }}
                 >
-                    <div className="space-y-1">
-                        <div className="inline-flex items-center space-x-2 px-3 py-1 bg-blue-50/50 rounded-full border border-blue-100/50">
-                            <SparklesIcon className="w-3.5 h-3.5 text-blue-600" />
-                            <span className="text-[10px] font-bold text-blue-600 tracking-wider uppercase">Advanced AI Matcher</span>
+                    <AdjustmentsHorizontalIcon className="w-4 h-4" />
+                    <span>{showUpload ? "Close" : "Update Resume"}</span>
+                </button>
+            </header>
+
+            {/* Resume upload panel — toggled */}
+            <AnimatePresence>
+                {showUpload && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }} className="overflow-hidden mb-8"
+                    >
+                        <div
+                            className="p-8 rounded-2xl bg-white"
+                            style={{ border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
+                        >
+                            <ResumeUpload onUploadSuccess={(d) => { setJobs(d.matchedJobs || []); setShowUpload(false); }} />
                         </div>
-                        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">System Opportunities</h1>
-                        <p className="text-slate-500 font-medium">Personalized career matches optimized for your profile.</p>
-                    </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
-                    <div className="flex items-center space-x-4">
-                        <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => setShowUpload(!showUpload)}
-                            className="px-6 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
-                        >
-                            {showUpload ? "Close Uploader" : "Update Resume"}
-                        </motion.button>
-                        <motion.button
-                            whileHover={selectedJobIds.size > 0 ? { scale: 1.02 } : {}}
-                            whileTap={selectedJobIds.size > 0 ? { scale: 0.98 } : {}}
-                            onClick={handleAutoApply}
-                            className={`px-6 py-3 rounded-2xl text-sm font-bold transition-all shadow-lg flex items-center
-                                ${selectedJobIds.size > 0 ? "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-600/20" : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"}
-                            `}
-                        >
-                            <RocketLaunchIcon className="w-4 h-4 mr-2" />
-                            Auto Apply ({selectedJobIds.size})
-                        </motion.button>
-                    </div>
-                </motion.header>
+            {/* ── Search Bar ── */}
+            <div className="relative mb-5 max-w-lg">
+                <MagnifyingGlassIcon
+                    className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4"
+                    style={{ color: "#9CA3AF" }}
+                />
+                <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    onKeyDown={handleSearch}
+                    placeholder="Search roles, companies… (Enter to search)"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl text-sm outline-none transition-all bg-white"
+                    style={{ border: "1px solid #E5E7EB", color: "#111827" }}
+                    onFocus={(e) => { e.target.style.borderColor = "#4F46E5"; e.target.style.boxShadow = "0 0 0 3px rgba(79,70,229,0.1)"; }}
+                    onBlur={(e)  => { e.target.style.borderColor = "#E5E7EB"; e.target.style.boxShadow = "none"; }}
+                />
+            </div>
 
-                <AnimatePresence>
-                    {showUpload && (
-                        <motion.section
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="mb-12 overflow-hidden"
-                        >
-                            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200/60 shadow-xl shadow-slate-200/40">
-                                <ResumeUpload onUploadSuccess={(data) => { setJobs(data); setShowUpload(false); }} />
-                            </div>
-                        </motion.section>
-                    )}
-                </AnimatePresence>
+            {/* ── Filter Tabs ── */}
+            <div className="flex items-center gap-2 mb-6 flex-wrap">
+                {TABS.map((t) => (
+                    <button
+                        key={t.key}
+                        onClick={() => handleTab(t.key)}
+                        className="px-4 py-2 rounded-full text-sm font-semibold transition-all"
+                        style={{
+                            backgroundColor: category === t.key ? "#4F46E5" : "#FFFFFF",
+                            color:           category === t.key ? "#FFFFFF" : "#6B7280",
+                            border:          `1px solid ${category === t.key ? "#4F46E5" : "#E5E7EB"}`,
+                        }}
+                    >
+                        {t.label}
+                    </button>
+                ))}
+            </div>
 
-                <div className="mb-10">
-                    <FilterPanel onFilterChange={handleFilterChange} />
+            {/* Error message */}
+            {error && (
+                <div
+                    className="mb-5 px-4 py-3 rounded-xl text-sm font-medium"
+                    style={{ backgroundColor: "#FEE2E2", color: "#DC2626", border: "1px solid #FECACA" }}
+                >
+                    {error}
                 </div>
+            )}
 
-                <div className="relative">
-                    <div className="flex items-center justify-between mb-8">
-                        <div className="flex items-center space-x-4">
-                            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-blue-600 shadow-sm border border-slate-100">
-                                <BriefcaseIcon className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <h2 className="text-xl font-bold text-slate-900 tracking-tight leading-tight">Matched Vacancies</h2>
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
-                                    {jobs.length} Optimized Results
-                                </p>
-                            </div>
+            {/* Result count */}
+            <div className="flex items-center space-x-3 mb-5">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#EEF2FF" }}>
+                    <BriefcaseIcon className="w-4 h-4" style={{ color: "#4F46E5" }} />
+                </div>
+                <p className="text-sm font-semibold" style={{ color: "#111827" }}>
+                    {jobs.length} {jobs.length === 1 ? "job" : "jobs"} found
+                </p>
+            </div>
+
+            {/* ── Job Grid ── */}
+            <AnimatePresence mode="wait">
+                {loading ? (
+                    <motion.div key="sk" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <SkeletonLoader type="card" count={4} />
+                    </motion.div>
+                ) : jobs.length > 0 ? (
+                    <motion.div key="jobs" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                        className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        {jobs.map((job, i) => (
+                            <JobCard
+                                key={job.jobId || job.id || i} index={i}
+                                role={job.role || job.title}
+                                company={job.company}
+                                location={job.location}
+                                minExperience={job.minExperience}
+                                maxExperience={job.maxExperience}
+                                source={job.source}
+                                applyLink={job.applyLink}
+                                category={job.jobType || job.category}
+                                description={job.description}
+                                isSelected={selected.has(i)}
+                                onSelect={(s) => toggleSelect(i, s)}
+                            />
+                        ))}
+                    </motion.div>
+                ) : (
+                    <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                        className="flex flex-col items-center justify-center py-28 rounded-2xl bg-white"
+                        style={{ border: "2px dashed #E5E7EB" }}
+                    >
+                        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ backgroundColor: "#EEF2FF" }}>
+                            <BriefcaseIcon className="w-7 h-7" style={{ color: "#4F46E5" }} />
                         </div>
-                    </div>
+                        <h4 className="text-base font-bold mb-1" style={{ color: "#111827" }}>No jobs found</h4>
+                        <p className="text-sm text-center max-w-xs" style={{ color: "#6B7280" }}>
+                            Try uploading your resume or changing the filter.
+                        </p>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </main>
+    );
+}
 
-                    <AnimatePresence mode="wait">
-                        {loading ? (
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6"
-                            >
-                                {[1, 2, 3, 4].map(idx => (
-                                    <div key={idx} className="h-64 rounded-3xl bg-slate-100/50 animate-pulse border border-slate-100 shimmer" />
-                                ))}
-                            </motion.div>
-                        ) : jobs.length > 0 ? (
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6"
-                            >
-                                {jobs.map((job, index) => (
-                                    <JobCard
-                                        key={index}
-                                        index={index}
-                                        role={job.role}
-                                        company={job.company}
-                                        location={job.location}
-                                        experience={job.experience}
-                                        source={job.source}
-                                        applyLink={job.applyLink}
-                                        isSelected={selectedJobIds.has(index)}
-                                        onSelect={(isSelected) => toggleJobSelection(index, isSelected)}
-                                    />
-                                ))}
-                            </motion.div>
-                        ) : (
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                className="text-center py-32 bg-white rounded-[3rem] border border-dashed border-slate-200"
-                            >
-                                <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-8">
-                                    <BriefcaseIcon className="w-10 h-10 text-slate-300" />
-                                </div>
-                                <h4 className="text-xl font-bold text-slate-900 mb-2">No vacancies matched yet</h4>
-                                <p className="text-slate-500 font-medium max-w-sm mx-auto">
-                                    Refine your filters above or upload your resume for immediate AI matching.
-                                </p>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
-            </main>
+export default function JobsPage() {
+    return (
+        <div className="flex min-h-screen" style={{ backgroundColor: "#F8FAFC" }}>
+            <Sidebar />
+            <Suspense fallback={
+                <main className="flex-1 lg:ml-64 p-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-20">
+                        <SkeletonLoader type="card" count={4} />
+                    </div>
+                </main>
+            }>
+                <JobsContent />
+            </Suspense>
         </div>
     );
 }

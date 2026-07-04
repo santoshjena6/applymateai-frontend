@@ -12,14 +12,20 @@ export const uploadResume = async (resumeFile) => {
         });
 
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`[ResumeUpload] Backend error ${response.status} ${response.statusText}:`, errorText);
-            throw new Error(`Failed to upload resume: ${response.status} ${response.statusText} - ${errorText}`);
+            let errorMessage = "Backend server error";
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.message || errorData.error || `Server returned ${response.status}`;
+            } catch (parseErr) {
+                const errorText = await response.text();
+                errorMessage = errorText || `Server returned ${response.status}`;
+            }
+            throw new Error(errorMessage);
         }
 
         return await response.json();
     } catch (error) {
-        console.error("Error uploading resume:", error);
+        // Just rethrow the clean error, let the component handle logging/display
         throw error;
     }
 };

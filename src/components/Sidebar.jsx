@@ -1,7 +1,8 @@
 "use client";
 
+// Sidebar — white, fixed left panel with nav links and logout
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
     HomeIcon,
     BriefcaseIcon,
@@ -10,83 +11,89 @@ import {
     UserCircleIcon,
     Cog6ToothIcon,
     ArrowLeftOnRectangleIcon,
-    PaperAirplaneIcon
+    SparklesIcon,
 } from "@heroicons/react/24/outline";
+
+// Primary navigation links
+const navigation = [
+    { name: "Dashboard",    href: "/dashboard",      icon: HomeIcon          },
+    { name: "Browse Jobs",  href: "/jobs",           icon: BriefcaseIcon     },
+    { name: "My Resume",    href: "/resume-upload",  icon: DocumentTextIcon  },
+    { name: "Applications", href: "/applications",   icon: TableCellsIcon    },
+    { name: "Profile",      href: "/profile",        icon: UserCircleIcon    },
+    { name: "Pricing Plans",href: "/pricing",        icon: SparklesIcon      },
+];
 
 const Sidebar = () => {
     const pathname = usePathname();
+    const router   = useRouter();
 
-    const navigation = [
-        { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
-        { name: "Jobs", href: "/jobs", icon: BriefcaseIcon },
-        { name: "Applications", href: "/applications", icon: TableCellsIcon },
-        { name: "Resume", href: "/resume-upload", icon: DocumentTextIcon },
-        { name: "Email Automation", href: "/email-automation", icon: PaperAirplaneIcon },
-    ];
-
-    const secondaryNavigation = [
-        { name: "Profile", href: "/profile", icon: UserCircleIcon },
-        { name: "Settings", href: "/settings", icon: Cog6ToothIcon },
-    ];
+    // Logout — clear auth keys and send user to login
+    const handleLogout = () => {
+        localStorage.removeItem("applync_token");
+        localStorage.removeItem("applync_user");
+        router.push("/login");
+    };
 
     return (
-        <aside className="hidden lg:flex flex-col w-64 h-screen fixed left-0 top-0 border-r border-slate-100 bg-white/80 backdrop-blur-xl z-50">
-            <div className="flex items-center h-20 px-8">
-                <Link href="/" className="flex items-center space-x-3">
-                    <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20 rotate-3 group-hover:rotate-0 transition-transform">
-                        <BriefcaseIcon className="w-5 h-5 text-white" />
+        <aside className="hidden lg:flex flex-col w-64 h-screen fixed left-0 top-0 z-50 bg-surface border-r border-border-color shadow-sm">
+            {/* Logo */}
+            <div className="flex items-center h-16 px-6 border-b border-border-color">
+                <Link href="/" className="flex items-center space-x-2">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center brand-gradient">
+                        <span className="text-white text-xs font-bold">A</span>
                     </div>
-                    <span className="text-xl font-bold tracking-tight text-slate-900">
-                        ApplyMate<span className="text-blue-600">.ai</span>
-                    </span>
+                    <span className="text-lg font-bold tracking-tight text-primary">Joblenso</span>
                 </Link>
             </div>
 
-            <div className="flex-1 flex flex-col justify-between overflow-y-auto px-4 py-6">
-                <nav className="space-y-1.5">
-                    {navigation.map((item) => {
-                        const isActive = pathname === item.href;
-                        return (
-                            <Link
-                                key={item.name}
-                                href={item.href}
-                                className={`flex items-center px-4 py-3 rounded-xl transition-all duration-300 group ${isActive
-                                        ? "bg-blue-600 text-white shadow-xl shadow-blue-600/15"
-                                        : "text-slate-500 hover:text-blue-600 hover:bg-blue-50/50"
-                                    }`}
-                            >
-                                <item.icon className={`mr-3 w-5 h-5 transition-colors ${isActive ? "text-white" : "text-slate-400 group-hover:text-blue-600"
-                                    }`} />
-                                <span className="text-sm font-semibold tracking-tight">{item.name}</span>
-                            </Link>
-                        );
-                    })}
-                </nav>
+            {/* Navigation links */}
+            <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-2">
+                {navigation.map((item) => {
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+                    return (
+                        <Link
+                            key={item.name}
+                            href={item.href}
+                            className={`flex items-center px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
+                                isActive 
+                                    ? "bg-primary/10 text-primary" 
+                                    : "text-text-secondary hover:bg-gray-50 hover:text-text-primary"
+                            }`}
+                        >
+                            <item.icon
+                                className={`mr-3 w-5 h-5 shrink-0 transition-colors ${
+                                    isActive ? "text-primary" : "text-gray-400 group-hover:text-gray-500"
+                                }`}
+                            />
+                            {item.name}
+                            {/* Active indicator dot */}
+                            {isActive && (
+                                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
+                            )}
+                        </Link>
+                    );
+                })}
+            </nav>
 
-                <div className="pt-6 border-t border-slate-50 space-y-4">
-                    <div>
-                        <p className="px-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-4 opacity-60">
-                            Management
-                        </p>
-                        <div className="space-y-1">
-                            {secondaryNavigation.map((item) => (
-                                <Link
-                                    key={item.name}
-                                    href={item.href}
-                                    className="flex items-center px-4 py-2.5 text-sm font-semibold text-slate-500 rounded-xl hover:text-blue-600 hover:bg-blue-50/50 transition-all group"
-                                >
-                                    <item.icon className="mr-3 w-5 h-5 text-slate-400 group-hover:text-blue-600 transition-colors" />
-                                    {item.name}
-                                </Link>
-                            ))}
-                        </div>
+            {/* Bottom section — settings + logout */}
+            <div className="px-4 pb-6 pt-4 space-y-2 border-t border-border-color">
+                <Link
+                    href="/settings"
+                    className="flex items-center px-3 py-2.5 rounded-xl text-sm font-medium text-text-secondary hover:bg-gray-50 hover:text-text-primary transition-all"
+                >
+                    <Cog6ToothIcon className="mr-3 w-5 h-5 text-gray-400" />
+                    Settings
+                </Link>
+                <button
+                    onClick={handleLogout}
+                    className="flex items-center w-full px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-all mt-4"
+                >
+                    <div className="mr-3 w-8 h-8 rounded-full bg-[#333333] flex items-center justify-center text-white font-medium text-sm">
+                        N
                     </div>
-
-                    <button className="flex items-center w-full px-4 py-3 text-sm font-semibold text-rose-500 rounded-xl hover:bg-rose-50 transition-all group">
-                        <ArrowLeftOnRectangleIcon className="mr-3 w-5 h-5 text-rose-400 group-hover:text-rose-600 transition-colors" />
-                        Logout
-                    </button>
-                </div>
+                    Logout
+                </button>
             </div>
         </aside>
     );
