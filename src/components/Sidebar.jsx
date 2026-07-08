@@ -3,9 +3,9 @@
 // Sidebar — white, fixed left panel with nav links and logout
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { clearAuthCookie } from "@/utils/authCookie";
 import {
     HomeIcon,
-    BriefcaseIcon,
     TableCellsIcon,
     DocumentTextIcon,
     UserCircleIcon,
@@ -17,7 +17,6 @@ import {
 // Primary navigation links
 const navigation = [
     { name: "Dashboard",    href: "/dashboard",      icon: HomeIcon          },
-    { name: "Browse Jobs",  href: "/jobs",           icon: BriefcaseIcon     },
     { name: "My Resume",    href: "/resume-upload",  icon: DocumentTextIcon  },
     { name: "Applications", href: "/applications",   icon: TableCellsIcon    },
     { name: "Profile",      href: "/profile",        icon: UserCircleIcon    },
@@ -31,7 +30,9 @@ const Sidebar = () => {
     // Logout — clear auth keys and send user to login
     const handleLogout = () => {
         localStorage.removeItem("applync_token");
+        localStorage.removeItem("applync_refresh_token");
         localStorage.removeItem("applync_user");
+        clearAuthCookie();
         router.push("/login");
     };
 

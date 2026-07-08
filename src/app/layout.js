@@ -1,4 +1,5 @@
 import { AuthProvider } from "@/hooks/useAuth";
+import CookieConsent from "@/components/CookieConsent";
 import "./globals.css";
 
 export const metadata = {
@@ -24,6 +25,7 @@ export default function RootLayout({ children }) {
       <body style={{ margin: 0, padding: 0 }}>
         <AuthProvider>
           {children}
+          <CookieConsent />
         </AuthProvider>
       </body>
     </html>

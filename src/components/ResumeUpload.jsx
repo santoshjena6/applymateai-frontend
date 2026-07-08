@@ -57,7 +57,7 @@ const ResumeUpload = ({ onUploadSuccess, onUploadStart, isAnalyzing }) => {
             setError("");
             handleUpload(f);
         } else {
-            setError("Please upload a PDF only file.");
+            setError("Please upload a PDF or DOCX file.");
             setFile(null);
         }
     };
@@ -125,7 +125,7 @@ const ResumeUpload = ({ onUploadSuccess, onUploadStart, isAnalyzing }) => {
                     ref={fileInputRef}
                     onChange={handleFile}
                     className="hidden"
-                    accept=".pdf"
+                    accept=".pdf,.docx,.doc"
                 />
 
                 <div className="flex flex-col items-center text-center">
@@ -135,7 +135,7 @@ const ResumeUpload = ({ onUploadSuccess, onUploadStart, isAnalyzing }) => {
                         Drag & drop your resume
                     </h3>
                     <p className="text-sm text-text-secondary mb-8">
-                        PDF only up to 5MB
+                        PDF or DOCX up to 5MB
                     </p>
                     
                     <button

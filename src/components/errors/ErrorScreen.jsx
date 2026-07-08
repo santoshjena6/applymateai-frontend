@@ -9,7 +9,7 @@ const ERRORS = {
     title: "Oops! Page Not Found",
     message: "Looks like this page took a coffee break ☕.\nDon't worry, let's get you back on track.",
     primaryAction: { label: "Go to Home", href: "/" },
-    secondaryAction: { label: "Browse Jobs", href: "/jobs" },
+    secondaryAction: { label: "Go to Dashboard", href: "/dashboard" },
     image: "/404.png",
   },
   500: {
@@ -73,7 +73,6 @@ export default function ErrorScreen({ type = "404", title, message, onRetry }) {
           <span className={styles.logoText}>ApplyMate</span>
         </div>
         <nav className={styles.navLinks}>
-          <Link href="/jobs" className={styles.navLink}>Jobs</Link>
           <Link href="/dashboard" className={styles.navLink}>Dashboard</Link>
           <Link href="/applications" className={styles.navLink}>Applications</Link>
           <Link href="/resume" className={styles.navLink}>Resume</Link>

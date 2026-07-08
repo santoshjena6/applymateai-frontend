@@ -37,6 +37,10 @@ const clearAuthAndRedirect = () => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem("applync_user");
+    // Clear the middleware auth cookie so protected routes block immediately
+    if (typeof document !== "undefined") {
+        document.cookie = "applync_auth=; path=/; max-age=0; SameSite=Lax";
+    }
     if (typeof window !== "undefined") window.location.href = "/login";
 };
 
@@ -99,9 +103,11 @@ api.interceptors.response.use(
 
 // Auth - POST /api/auth/*
 export const authService = {
-    login:    (email, password)                        => api.post("/auth/login",    { email, password }),
-    register: (name, email, password, jobType)         => api.post("/auth/register", { name, email, password, jobType }),
-    getMe:    ()                                       => api.get("/user/profile"),
+    login:      (email, password)                      => api.post("/auth/login",      { email, password }),
+    register:   (name, email, password, jobType)       => api.post("/auth/register",   { name, email, password, jobType }),
+    verifyOtp:  (email, otp)                           => api.post("/auth/verify-otp", { email, otp }),
+    resendOtp:  (email)                                => api.post("/auth/resend-otp", { email }),
+    getMe:      ()                                     => api.get("/user/profile"),
 };
 
 // Resume - /api/resume/*

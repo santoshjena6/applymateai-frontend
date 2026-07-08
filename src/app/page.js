@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
+import { motion, useScroll, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 
 // ── Exact Homy font stack ──────────────────────────────────────────────────
@@ -16,34 +16,58 @@ const light  = "#f6f6f6";
 const white  = "#ffffff";
 const border = "#e8e8e8";
 
-// ── Arrow-box CTA button (Homy's signature style) ─────────────────────────
-function ArrowBtn({ children, filled = true, href, onClick, extraStyle = {} }) {
+// ── Arrow-box CTA button ──────────────────────────────────────────────────
+// variant: "dark"(default) | "dark-glass" | "white-glass" | "light"
+function ArrowBtn({ children, filled = true, variant = "dark", href, onClick, extraStyle = {} }) {
+  const isDarkGlass  = variant === "dark-glass";
+  const isWhiteGlass = variant === "white-glass";
+  const isLight      = variant === "light";
+
+  let bg, fg, bdr, showArrow, arrowBoxBg, arrowBoxFg;
+
+  if (isDarkGlass) {
+    bg = "rgba(8,11,15,0.72)";   fg = white;
+    bdr = "1px solid rgba(255,255,255,0.12)";
+    showArrow = true; arrowBoxBg = "rgba(255,255,255,0.18)"; arrowBoxFg = white;
+  } else if (isWhiteGlass) {
+    bg = "rgba(255,255,255,0.22)"; fg = white;
+    bdr = "1.5px solid rgba(255,255,255,0.5)";
+    showArrow = false; arrowBoxBg = white; arrowBoxFg = dark;
+  } else if (isLight) {
+    bg = white; fg = dark; bdr = "none";
+    showArrow = true; arrowBoxBg = dark; arrowBoxFg = white;
+  } else {
+    bg = filled ? dark : white;
+    fg = filled ? white : dark;
+    bdr = filled ? "none" : "1.5px solid rgba(0,0,0,0.13)";
+    showArrow = filled; arrowBoxBg = white; arrowBoxFg = dark;
+  }
+
+  const pad  = showArrow ? "8px 9px 8px 18px" : "8px 22px";
+  const blur = (isDarkGlass || isWhiteGlass) ? "blur(14px)" : undefined;
+
   const base = {
     display: "inline-flex", alignItems: "center", gap: 8,
-    background: filled ? dark : white,
-    color:      filled ? white : dark,
-    border:     filled ? "none" : `1.5px solid ${dark}`,
-    borderRadius: 999,
-    padding: filled ? "10px 14px 10px 22px" : "12px 28px",
-    fontFamily: SW, fontWeight: 500, fontSize: 15,
+    background: bg, color: fg, border: bdr,
+    borderRadius: 999, padding: pad, lineHeight: 1,
+    fontFamily: SW, fontWeight: 500, fontSize: 13,
     cursor: "pointer", textDecoration: "none",
+    backdropFilter: blur, WebkitBackdropFilter: blur,
     ...extraStyle,
   };
   const arrow = {
     display: "inline-flex", alignItems: "center", justifyContent: "center",
-    width: 34, height: 34,
-    background: white,
-    color: dark,
-    borderRadius: 8, flexShrink: 0, fontSize: 17,
+    width: 26, height: 26, background: arrowBoxBg, color: arrowBoxFg,
+    borderRadius: 7, flexShrink: 0, fontSize: 13,
   };
   if (href) return (
     <Link href={href} style={base}>
-      {children}{filled && <span style={arrow}>→</span>}
+      {children}{showArrow && <span style={arrow}>→</span>}
     </Link>
   );
   return (
     <button style={base} onClick={onClick}>
-      {children}{filled && <span style={arrow}>→</span>}
+      {children}{showArrow && <span style={arrow}>→</span>}
     </button>
   );
 }
@@ -101,8 +125,14 @@ export default function Home() {
   const textY       = useTransform(scrollPx, [0, 300], [0, -50]);
   const textOpacity = useTransform(scrollPx, [0, 300], [1, 0]);
 
-  // Card+cloud rise together (like Homy's house image). 320px total rise.
-  const buildingY   = useTransform(scrollPx, [0, 949], [0, -320]);
+  // Parallax clouds: slow and fast layers to make it look dense and move slowly
+  const leftCloudFast = useTransform(scrollPx, [0, 1500], ["0%", "-35vw"]);
+  const rightCloudFast = useTransform(scrollPx, [0, 1500], ["0%", "35vw"]);
+  const leftCloudSlow = useTransform(scrollPx, [0, 1500], ["0%", "-15vw"]);
+  const rightCloudSlow = useTransform(scrollPx, [0, 1500], ["0%", "15vw"]);
+
+  // Card rises like Homy building — starts lower so it doesn't touch buttons
+  const buildingY   = useTransform(scrollPx, [0, 900], [0, -400]);
 
   return (
     <div style={{ fontFamily: SW, background: white, color: dark }}>
@@ -127,7 +157,7 @@ export default function Home() {
         <div style={{ display: "flex", alignItems: "center", gap: 40 }} className="desk-nav" />
 
         <div className="desk-nav">
-          <ArrowBtn filled href="/login">Get Started</ArrowBtn>
+          <ArrowBtn filled href="/register">Get Started</ArrowBtn>
         </div>
 
         <button className="mob-btn" onClick={() => setMobileOpen(true)}
@@ -158,7 +188,7 @@ export default function Home() {
               </a>
             ))}
             <div style={{ marginTop: "auto" }}>
-              <ArrowBtn filled href="/login">Get Started</ArrowBtn>
+              <ArrowBtn filled href="/register">Get Started</ArrowBtn>
             </div>
           </motion.div>
         )}
@@ -170,13 +200,12 @@ export default function Home() {
       <div ref={heroRef} style={{ height: "230vh" }}>
         <section style={{
           position: "sticky", top: 0, height: "100vh",
-          background: "linear-gradient(180deg, #c3e5f7 0%, #a8d4ec 18%, #7eb8d8 36%, #559dbe 52%, #3d86a8 64%, #2e6f8e 75%, #1e5a75 84%, #315f70 92%, #316073 100%)",
-          filter: "brightness(1.03) contrast(1.05)",
+          background: "linear-gradient(180deg, #daeefa 0%, #c2e3f7 20%, #a8d7f4 40%, #93ccf0 65%, #82c1ec 100%)",
           overflow: "hidden",
         }}>
 
           {/* ── TEXT — compact to leave room for cloud + card ── */}
-          <motion.div style={{ y: textY, opacity: textOpacity, position: "relative", zIndex: 3 }}>
+          <motion.div style={{ y: textY, opacity: textOpacity, position: "relative", zIndex: 10 }}>
             <div style={{ textAlign: "center", paddingTop: 52, paddingLeft: 24, paddingRight: 24 }}>
 
               {/* Badge */}
@@ -199,86 +228,39 @@ export default function Home() {
               </div>
 
               <h1 style={{
-                fontFamily: SG, fontSize: "clamp(30px, 3.8vw, 62px)",
-                fontWeight: 900, lineHeight: 1.02, letterSpacing: "-1.5px",
-                color: dark, margin: "0 0 12px",
+                fontFamily: SG, fontSize: "clamp(38px, 6.5vw, 105px)",
+                fontWeight: 900, lineHeight: 1.02, letterSpacing: "-2px",
+                color: dark, margin: "0 0 14px",
               }}>Find Your Dream Job</h1>
 
               <p style={{ fontFamily: SW, fontSize: 15, lineHeight: 1.6, color: gray, maxWidth: 400, margin: "0 auto 18px" }}>
                 Upload your resume — AI matches and auto-applies to perfect jobs.
               </p>
 
-              <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-                <ArrowBtn filled href="/jobs">Explore Jobs</ArrowBtn>
-                <ArrowBtn filled={false} href="/resume-upload">Upload Resume</ArrowBtn>
+              <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginBottom: 30 }}>
+                <ArrowBtn filled onClick={() => {
+                  const token = localStorage.getItem("applync_token");
+                  window.location.href = token ? "/jobs" : "/register";
+                }}>Explore Jobs</ArrowBtn>
+                <ArrowBtn filled={false} onClick={() => {
+                  const token = localStorage.getItem("applync_token");
+                  window.location.href = token ? "/resume-upload" : "/register";
+                }}>Upload Resume</ArrowBtn>
               </div>
             </div>
           </motion.div>
 
-          {/* ── CARD + CLOUD — one rising unit (like Homy's house image)
-              bottom:-230px → card top at y≈320 at scroll=0 (peeking above cloud)
-              Cloud at top:250px inside → cloud peaks at y≈570 at scroll=0
-              Rises 240px → card top at y≈80 at full scroll, cloud at y≈330      */}
+          {/* ── CARD — top portion visible above cloud on load, rises as you scroll ── */}
           <motion.div style={{
             y: buildingY,
             position: "absolute",
-            bottom: "-230px",
+            bottom: "-350px", // Just enough to prevent touching buttons
             left: 0, right: 0,
-            zIndex: 2,
+            zIndex: 9,
           }}>
 
-
-            {/* ── Cloud SVG — Homy-style puff clouds rising with card ── */}
-            <div style={{
-              position: "absolute", top: 280, left: "-5%", right: "-5%",
-              height: 500, zIndex: 5, pointerEvents: "none",
-            }}>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 1500 500"
-                preserveAspectRatio="none"
-                style={{ display: "block", width: "100%", height: "100%" }}
-              >
-                <defs>
-                  {/* Heavy blur — atmospheric haze base */}
-                  <filter id="cfa" x="-30%" y="-30%" width="160%" height="160%">
-                    <feGaussianBlur stdDeviation="20 15" />
-                  </filter>
-                  {/* Medium blur — applied to entire cloud puff group at once */}
-                  <filter id="cfp" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="14 12" />
-                  </filter>
-                </defs>
-
-                {/* Atmospheric haze — wide, low, heavy blur for depth */}
-                <ellipse cx="750" cy="465" rx="940" ry="170"
-                  fill="rgba(255,255,255,0.8)" filter="url(#cfa)" />
-
-                {/* Cloud puff group — all puffs composite then blur together,
-                    creates thick organic cloud mass like Homy's photograph */}
-                <g filter="url(#cfp)" fill="white">
-                  {/* Row 1 — prominent bumpy tops */}
-                  <ellipse cx="120" cy="385" rx="215" ry="135" />
-                  <ellipse cx="400" cy="360" rx="265" ry="150" />
-                  <ellipse cx="700" cy="348" rx="280" ry="155" />
-                  <ellipse cx="1000" cy="358" rx="265" ry="150" />
-                  <ellipse cx="1280" cy="372" rx="240" ry="140" />
-                  <ellipse cx="1460" cy="390" rx="195" ry="125" />
-                  {/* Row 2 — fills gaps between row 1 */}
-                  <ellipse cx="260" cy="410" rx="235" ry="122" />
-                  <ellipse cx="560" cy="398" rx="248" ry="128" />
-                  <ellipse cx="860" cy="402" rx="244" ry="126" />
-                  <ellipse cx="1148" cy="406" rx="238" ry="122" />
-                  <ellipse cx="1390" cy="416" rx="205" ry="115" />
-                  {/* Solid floor to seal bottom */}
-                  <ellipse cx="750" cy="455" rx="950" ry="105" />
-                  <rect x="-100" y="450" width="1700" height="60" />
-                </g>
-              </svg>
-            </div>
-
             {/* ── Resume card ── */}
-            <div style={{ display: "flex", justifyContent: "center", position: "relative", zIndex: 3 }}>
+            <div style={{ display: "flex", justifyContent: "center", position: "relative", zIndex: 2 }}>
             <div style={{
               width: "min(660px, 88vw)",
               background: white,
@@ -399,6 +381,69 @@ export default function Home() {
             </div>
             </div>
           </motion.div>
+
+          {/* ── Sky background cloud wisps (behind card) ── */}
+          <div style={{
+            position: "absolute", left: "-2%", top: "8%",
+            width: "45%", height: "42%", zIndex: 1, pointerEvents: "none",
+            background: "radial-gradient(ellipse 72% 58% at 35% 58%, rgba(255,255,255,0.82) 0%, rgba(255,255,255,0.48) 42%, transparent 72%)",
+            filter: "blur(9px)",
+          }} />
+          <div style={{
+            position: "absolute", right: "0%", top: "15%",
+            width: "32%", height: "36%", zIndex: 1, pointerEvents: "none",
+            background: "radial-gradient(ellipse 68% 52% at 58% 52%, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.38) 45%, transparent 72%)",
+            filter: "blur(11px)",
+          }} />
+
+          {/* ── Animated Homy Clouds (Multiple Layers for Depth) ── */}
+          
+          {/* BACKGROUND LAYER (Moves Slower) */}
+          <motion.div 
+              className="absolute bottom-[-5%] left-[-25%] w-[80vw] h-[65vh] z-20 pointer-events-none opacity-80"
+              style={{ x: leftCloudSlow }}
+          >
+              <img src="/cloud.png" alt="cloud" className="w-full h-full object-contain object-bottom" style={{ filter: "brightness(0) invert(1) opacity(0.7)", transform: "scale(1.1)" }} />
+          </motion.div>
+          
+          <motion.div 
+              className="absolute bottom-[-5%] right-[-25%] w-[80vw] h-[65vh] z-20 pointer-events-none opacity-80"
+              style={{ x: rightCloudSlow }}
+          >
+              <img src="/cloud.png" alt="cloud" className="w-full h-full object-contain object-bottom" style={{ transform: "scaleX(-1) scale(1.1)", filter: "brightness(0) invert(1) opacity(0.7)" }} />
+          </motion.div>
+
+          {/* MIDDLE LAYER (Moves a bit faster) */}
+          <motion.div 
+              className="absolute bottom-[-15%] left-[-10%] w-[90vw] h-[75vh] z-30 pointer-events-none opacity-90"
+              style={{ x: leftCloudFast }}
+          >
+              <img src="/cloud.png" alt="cloud" className="w-full h-full object-contain object-bottom drop-shadow-2xl" style={{ filter: "brightness(0) invert(1) opacity(0.9)" }} />
+              <img src="/cloud.png" alt="cloud" className="absolute inset-0 w-full h-full object-contain object-bottom mix-blend-screen" style={{ transform: "scale(1.15) translateX(-5%)" }} />
+          </motion.div>
+
+          <motion.div 
+              className="absolute bottom-[-15%] right-[-10%] w-[90vw] h-[75vh] z-30 pointer-events-none opacity-90"
+              style={{ x: rightCloudFast }}
+          >
+              <img src="/cloud.png" alt="cloud" className="w-full h-full object-contain object-bottom drop-shadow-2xl" style={{ transform: "scaleX(-1)", filter: "brightness(0) invert(1) opacity(0.9)" }} />
+              <img src="/cloud.png" alt="cloud" className="absolute inset-0 w-full h-full object-contain object-bottom mix-blend-screen" style={{ transform: "scale(-1.15, 1.15) translateX(-5%)" }} />
+          </motion.div>
+
+          {/* FOREGROUND STATIC PUFFS (To blend bottom edge) */}
+          <div className="absolute bottom-[-20%] left-[10%] w-[50vw] h-[40vh] z-30 pointer-events-none opacity-70">
+              <img src="/cloud.png" alt="cloud" className="w-full h-full object-contain object-bottom" style={{ filter: "brightness(0) invert(1) opacity(1)" }} />
+          </div>
+          <div className="absolute bottom-[-20%] right-[10%] w-[50vw] h-[40vh] z-30 pointer-events-none opacity-70">
+              <img src="/cloud.png" alt="cloud" className="w-full h-full object-contain object-bottom" style={{ transform: "scaleX(-1)", filter: "brightness(0) invert(1) opacity(1)" }} />
+          </div>
+
+          {/* Floor cloud overlay to hide the bottom edges perfectly */}
+          <div style={{
+            position: "absolute", bottom: -2, left: 0, right: 0,
+            height: "15vh", zIndex: 40, pointerEvents: "none",
+            background: "linear-gradient(to top, white 20%, transparent)",
+          }} />
 
         </section>
       </div>
@@ -690,7 +735,7 @@ export default function Home() {
           </h2>
         </Reveal>
         {[
-          { q: "How does the AI matching process work?",  a: "We analyse your resume with Groq AI to extract skills, experience level, and target role — then rank live openings by relevance score." },
+          { q: "How does the AI matching process work?",  a: "We analyse your resume with our proprietary AI engine to extract skills, experience level, and target role — then rank live openings by relevance score." },
           { q: "Are the company listings verified?",       a: "Yes. Every company in our network is vetted. We partner only with organisations that meet our standards for culture and compensation." },
           { q: "Can I track my application status?",       a: "Absolutely. Your dashboard shows every application in real time — from Submitted through Interviewed to Offered." },
           { q: "Is the platform free to use?",             a: "Core job search and tracking features are free. AI resume optimisation and priority matching are available on our Pro plan." },
@@ -738,7 +783,7 @@ export default function Home() {
               <p style={{ fontFamily: SW, fontSize: 17, color: "rgba(255,255,255,0.72)", maxWidth: 440, margin: "0 auto 36px" }}>
                 Join thousands of professionals who found their perfect role using our AI platform.
               </p>
-              <ArrowBtn filled={false} href="/jobs"
+              <ArrowBtn filled={false} href="/register"
                 extraStyle={{ background: "rgba(255,255,255,0.12)", backdropFilter: "blur(8px)", border: "1.5px solid rgba(255,255,255,0.4)", color: white }}>
                 Get Started Now
               </ArrowBtn>

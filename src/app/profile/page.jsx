@@ -11,9 +11,19 @@ import {
     EnvelopeIcon,
     CalendarIcon,
     BriefcaseIcon,
+    PhoneIcon,
+    MapPinIcon,
+    CurrencyRupeeIcon,
 } from '@heroicons/react/24/outline';
 import { userService } from '@/services/api';
 import { getErrorMessage } from '@/utils/errorMessage';
+
+const SG = "'Special Gothic', sans-serif";
+const SW = "'Switzer', sans-serif";
+const dark = "#080b0f";
+const gray = "#4b5b63";
+const white = "#ffffff";
+const borderCol = "#e8e8e8";
 
 // jobType label map for the badge
 const JOB_TYPE_LABELS = {
@@ -21,41 +31,49 @@ const JOB_TYPE_LABELS = {
     NON_IT: 'Non-IT',
 };
 
+const inputStyle = {
+    width: "100%", padding: "14px 16px", borderRadius: 16,
+    background: "#fcfcfc", border: `1px solid ${borderCol}`,
+    fontFamily: SW, fontSize: 15, color: dark, outline: "none", transition: "all 0.2s",
+};
+
 export default function ProfilePage() {
     const router = useRouter();
-    const [user, setUser]         = useState({});
-    const [name, setName]         = useState('');
-    const [saving, setSaving]     = useState(false);
-    const [saveMsg, setSaveMsg]   = useState('');
-    const [saveErr, setSaveErr]   = useState('');
+    const [user, setUser]                   = useState({});
+    const [name, setName]                   = useState('');
+    const [phone, setPhone]                 = useState('');
+    const [location, setLocation]           = useState('');
+    const [expectedSalary, setExpectedSalary] = useState('');
+    const [saving, setSaving]               = useState(false);
+    const [saveMsg, setSaveMsg]             = useState('');
+    const [saveErr, setSaveErr]             = useState('');
 
     useEffect(() => {
-        // Auth guard — redirect if no token
         const token = localStorage.getItem('applync_token');
         if (!token) { router.replace('/login'); return; }
 
-        // Seed from localStorage immediately so UI isn't blank while API loads
         try {
             const stored = JSON.parse(localStorage.getItem('applync_user') || '{}');
-            setUser(stored);
-            setName(stored.name || '');
+            hydrate(stored);
         } catch {}
 
-        // GET /api/v1/user/profile — fetch fresh data from backend
         userService.getProfile()
             .then((res) => {
                 const fresh = res.data;
-                setUser(fresh);
-                setName(fresh.name || '');
-                // Keep localStorage in sync with backend
+                hydrate(fresh);
                 localStorage.setItem('applync_user', JSON.stringify(fresh));
             })
-            .catch(() => {
-                // Backend unavailable — localStorage values already set above, just continue
-            });
+            .catch(() => {});
     }, [router]);
 
-    // Save updated name to backend and sync localStorage
+    const hydrate = (u) => {
+        setUser(u);
+        setName(u.name || '');
+        setPhone(u.phone || '');
+        setLocation(u.location || '');
+        setExpectedSalary(u.expectedSalary || '');
+    };
+
     const handleSave = async (e) => {
         e.preventDefault();
         if (!name.trim()) { setSaveErr('Name cannot be empty.'); return; }
@@ -63,10 +81,14 @@ export default function ProfilePage() {
         setSaveMsg('');
         setSaveErr('');
         try {
-            // PUT /api/v1/user/profile
-            const res = await userService.updateProfile({ name: name.trim() });
-            // Merge returned data back into localStorage user object
-            const updated = { ...user, ...res.data, name: name.trim() };
+            const payload = {
+                name:           name.trim(),
+                phone:          phone.trim() || null,
+                location:       location.trim() || null,
+                expectedSalary: expectedSalary.trim() || null,
+            };
+            const res = await userService.updateProfile(payload);
+            const updated = { ...user, ...res.data };
             localStorage.setItem('applync_user', JSON.stringify(updated));
             setUser(updated);
             setSaveMsg('Profile updated successfully!');
@@ -74,89 +96,76 @@ export default function ProfilePage() {
             setSaveErr(getErrorMessage(err, "profile"));
         } finally {
             setSaving(false);
-            // Auto-clear status messages after 3s
             setTimeout(() => { setSaveMsg(''); setSaveErr(''); }, 3000);
         }
     };
 
-    // Avatar initial — first letter of name or email
     const avatarLetter = (user.name || user.email || 'U')[0].toUpperCase();
-
-    // Format createdAt date if available
     const memberSince = user.createdAt
         ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
         : null;
 
     return (
-        <div className="flex min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
+        <div style={{ display: "flex", minHeight: "100vh", fontFamily: SW, background: "linear-gradient(to bottom, #d5ecfa, #e9f2f9)" }}>
             <Sidebar />
 
-            <main className="flex-1 lg:ml-64 p-6 lg:p-8">
+            <main style={{ flex: 1, padding: "40px 48px", marginLeft: "256px" }} className="lg:ml-64 p-6 lg:p-8">
                 {/* ── Page Header ── */}
-                <header className="flex items-center gap-4 mb-8">
+                <header style={{ marginBottom: 40 }}>
                     <button
                         onClick={() => router.push('/dashboard')}
-                        className="flex items-center space-x-1.5 text-sm font-medium transition-colors hover:text-indigo-600"
-                        style={{ color: '#6B7280' }}
+                        style={{ display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", color: gray, fontFamily: SW, fontSize: 14, fontWeight: 700, cursor: "pointer", transition: "color 0.2s" }}
+                        onMouseEnter={e => e.currentTarget.style.color = dark}
+                        onMouseLeave={e => e.currentTarget.style.color = gray}
                     >
-                        <ArrowLeftIcon className="w-4 h-4" />
+                        <ArrowLeftIcon className="w-4 h-4 stroke-[2.5]" />
                         <span>Back to Dashboard</span>
                     </button>
                 </header>
 
-                <div className="max-w-2xl space-y-6">
+                <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
+
                     {/* ── Profile Info Card ── */}
-                    <div
-                        className="bg-white rounded-2xl p-6"
-                        style={{ border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
-                    >
+                    <div style={{ background: white, borderRadius: 24, padding: 32, border: "1px solid rgba(255,255,255,0.8)", boxShadow: "0 10px 40px rgba(0,0,0,0.04)" }}>
                         {/* Avatar + name + email row */}
-                        <div className="flex items-center space-x-4 mb-6">
-                            <div
-                                className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-black text-white brand-gradient shrink-0"
-                            >
+                        <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 32 }}>
+                            <div style={{ width: 80, height: 80, borderRadius: 24, background: dark, color: white, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SG, fontSize: 32, fontWeight: 800, boxShadow: "0 8px 24px rgba(8,11,15,0.2)" }}>
                                 {avatarLetter}
                             </div>
                             <div>
-                                <h2 className="text-xl font-black" style={{ color: '#111827' }}>
+                                <h2 style={{ fontFamily: SG, fontSize: 32, fontWeight: 800, color: dark, letterSpacing: "-1px", marginBottom: 4 }}>
                                     {user.name || 'Your Name'}
                                 </h2>
-                                <p className="text-sm mt-0.5" style={{ color: '#6B7280' }}>{user.email || '—'}</p>
+                                <p style={{ fontSize: 15, color: gray, fontWeight: 500 }}>{user.email || '—'}</p>
                             </div>
                         </div>
 
                         {/* Info rows */}
-                        <div className="space-y-3">
-                            {/* Email — read-only */}
-                            <div
-                                className="flex items-center space-x-3 px-4 py-3 rounded-xl"
-                                style={{ backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB' }}
-                            >
-                                <EnvelopeIcon className="w-4 h-4 shrink-0" style={{ color: '#9CA3AF' }} />
-                                <div>
-                                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Email</p>
-                                    <p className="text-sm font-medium" style={{ color: '#111827' }}>{user.email || '—'}</p>
-                                </div>
-                            </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                            {/* Email */}
+                            <InfoRow icon={<EnvelopeIcon style={{ width: 20, height: 20, color: gray }} />} label="Email" value={user.email || '—'} />
 
-                            {/* Job type badge */}
-                            <div
-                                className="flex items-center space-x-3 px-4 py-3 rounded-xl"
-                                style={{ backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB' }}
-                            >
-                                <BriefcaseIcon className="w-4 h-4 shrink-0" style={{ color: '#9CA3AF' }} />
-                                <div className="flex items-center justify-between w-full">
+                            {/* Phone */}
+                            {user.phone && <InfoRow icon={<PhoneIcon style={{ width: 20, height: 20, color: gray }} />} label="Phone" value={user.phone} />}
+
+                            {/* Location */}
+                            {user.location && <InfoRow icon={<MapPinIcon style={{ width: 20, height: 20, color: gray }} />} label="Location" value={user.location} />}
+
+                            {/* Expected Salary */}
+                            {user.expectedSalary && <InfoRow icon={<CurrencyRupeeIcon style={{ width: 20, height: 20, color: gray }} />} label="Expected Salary" value={user.expectedSalary} />}
+
+                            {/* Job type */}
+                            <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 20px", borderRadius: 16, background: "#f8fafc", border: `1px solid ${borderCol}` }}>
+                                <BriefcaseIcon style={{ width: 20, height: 20, color: gray }} />
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flex: 1 }}>
                                     <div>
-                                        <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Job Type</p>
-                                        <p className="text-sm font-medium" style={{ color: '#111827' }}>
+                                        <p style={{ fontSize: 11, fontWeight: 700, color: gray, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Job Type</p>
+                                        <p style={{ fontSize: 15, fontWeight: 600, color: dark }}>
                                             {JOB_TYPE_LABELS[user.jobType] || user.jobType || '—'}
                                         </p>
                                     </div>
                                     {user.jobType && (
-                                        <span
-                                            className="px-3 py-1 rounded-full text-xs font-semibold"
-                                            style={{ backgroundColor: '#EEF2FF', color: '#4F46E5' }}
-                                        >
+                                        <span style={{ padding: "6px 12px", borderRadius: 999, background: "#e9f2f9", color: "#3a7ca5", fontSize: 12, fontWeight: 800 }}>
                                             {JOB_TYPE_LABELS[user.jobType] || user.jobType}
                                         </span>
                                     )}
@@ -165,79 +174,92 @@ export default function ProfilePage() {
 
                             {/* Member since */}
                             {memberSince && (
-                                <div
-                                    className="flex items-center space-x-3 px-4 py-3 rounded-xl"
-                                    style={{ backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB' }}
-                                >
-                                    <CalendarIcon className="w-4 h-4 shrink-0" style={{ color: '#9CA3AF' }} />
-                                    <div>
-                                        <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Member Since</p>
-                                        <p className="text-sm font-medium" style={{ color: '#111827' }}>{memberSince}</p>
-                                    </div>
-                                </div>
+                                <InfoRow icon={<CalendarIcon style={{ width: 20, height: 20, color: gray }} />} label="Member Since" value={memberSince} />
                             )}
                         </div>
                     </div>
 
-                    {/* ── Edit Name Form ── */}
-                    <div
-                        className="bg-white rounded-2xl p-6"
-                        style={{ border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
-                    >
-                        <div className="flex items-center space-x-2 mb-5">
-                            <UserCircleIcon className="w-5 h-5" style={{ color: '#4F46E5' }} />
-                            <h3 className="text-base font-bold" style={{ color: '#111827' }}>Edit Profile</h3>
+                    {/* ── Edit Profile Form ── */}
+                    <div style={{ background: white, borderRadius: 24, padding: 32, border: "1px solid rgba(255,255,255,0.8)", boxShadow: "0 10px 40px rgba(0,0,0,0.04)" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+                            <UserCircleIcon style={{ width: 24, height: 24, color: dark }} />
+                            <h3 style={{ fontFamily: SG, fontSize: 24, fontWeight: 800, color: dark, letterSpacing: "-0.5px" }}>Edit Profile</h3>
                         </div>
 
-                        <form onSubmit={handleSave} className="space-y-4">
-                            {/* Name input pre-filled from localStorage */}
-                            <div>
-                                <label className="block text-sm font-semibold mb-1.5" style={{ color: '#374151' }}>
-                                    Full Name
-                                </label>
+                        <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                            {/* Name */}
+                            <FormField label="Full Name" required>
                                 <input
                                     type="text"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                     placeholder="Your full name"
-                                    className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all bg-white"
-                                    style={{ border: '1px solid #E5E7EB', color: '#111827' }}
-                                    onFocus={(e) => { e.target.style.borderColor = '#4F46E5'; e.target.style.boxShadow = '0 0 0 3px rgba(79,70,229,0.1)'; }}
-                                    onBlur={(e)  => { e.target.style.borderColor = '#E5E7EB'; e.target.style.boxShadow = 'none'; }}
+                                    style={inputStyle}
+                                    onFocus={(e) => { e.target.style.borderColor = dark; e.target.style.background = white; }}
+                                    onBlur={(e)  => { e.target.style.borderColor = borderCol; e.target.style.background = "#fcfcfc"; }}
                                 />
-                            </div>
+                            </FormField>
 
-                            {/* Email — read-only, not editable */}
-                            <div>
-                                <label className="block text-sm font-semibold mb-1.5" style={{ color: '#374151' }}>
-                                    Email Address <span className="text-xs font-normal" style={{ color: '#9CA3AF' }}>(read-only)</span>
-                                </label>
+                            {/* Email — read-only */}
+                            <FormField label="Email Address" hint="(read-only)">
                                 <input
                                     type="email"
                                     value={user.email || ''}
                                     readOnly
-                                    className="w-full px-4 py-3 rounded-xl text-sm cursor-not-allowed"
-                                    style={{ border: '1px solid #E5E7EB', color: '#9CA3AF', backgroundColor: '#F9FAFB' }}
+                                    style={{ ...inputStyle, background: "#f8fafc", color: gray, cursor: "not-allowed" }}
                                 />
-                            </div>
+                            </FormField>
 
-                            {/* Success message */}
+                            {/* Phone */}
+                            <FormField label="Phone Number" hint="(optional)">
+                                <input
+                                    type="tel"
+                                    value={phone}
+                                    onChange={(e) => setPhone(e.target.value)}
+                                    placeholder="+91 98765 43210"
+                                    style={inputStyle}
+                                    onFocus={(e) => { e.target.style.borderColor = dark; e.target.style.background = white; }}
+                                    onBlur={(e)  => { e.target.style.borderColor = borderCol; e.target.style.background = "#fcfcfc"; }}
+                                />
+                            </FormField>
+
+                            {/* Location */}
+                            <FormField label="Location" hint="(optional)">
+                                <input
+                                    type="text"
+                                    value={location}
+                                    onChange={(e) => setLocation(e.target.value)}
+                                    placeholder="e.g. Bangalore, India"
+                                    style={inputStyle}
+                                    onFocus={(e) => { e.target.style.borderColor = dark; e.target.style.background = white; }}
+                                    onBlur={(e)  => { e.target.style.borderColor = borderCol; e.target.style.background = "#fcfcfc"; }}
+                                />
+                            </FormField>
+
+                            {/* Expected Salary */}
+                            <FormField label="Expected Salary" hint="(optional)">
+                                <input
+                                    type="text"
+                                    value={expectedSalary}
+                                    onChange={(e) => setExpectedSalary(e.target.value)}
+                                    placeholder="e.g. ₹8 LPA or $80,000/yr"
+                                    style={inputStyle}
+                                    onFocus={(e) => { e.target.style.borderColor = dark; e.target.style.background = white; }}
+                                    onBlur={(e)  => { e.target.style.borderColor = borderCol; e.target.style.background = "#fcfcfc"; }}
+                                />
+                            </FormField>
+
+                            {/* Success */}
                             {saveMsg && (
-                                <div
-                                    className="flex items-center space-x-2 px-4 py-3 rounded-xl text-sm font-medium"
-                                    style={{ backgroundColor: '#D1FAE5', color: '#059669', border: '1px solid #A7F3D0' }}
-                                >
-                                    <CheckCircleIcon className="w-4 h-4 shrink-0" />
+                                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderRadius: 12, background: "#ecfdf5", color: "#059669", border: "1px solid #a7f3d0", fontSize: 14, fontWeight: 600 }}>
+                                    <CheckCircleIcon style={{ width: 18, height: 18 }} />
                                     <span>{saveMsg}</span>
                                 </div>
                             )}
 
-                            {/* Error message */}
+                            {/* Error */}
                             {saveErr && (
-                                <div
-                                    className="px-4 py-3 rounded-xl text-sm font-medium"
-                                    style={{ backgroundColor: '#FEE2E2', color: '#DC2626', border: '1px solid #FECACA' }}
-                                >
+                                <div style={{ padding: "12px 16px", borderRadius: 12, background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", fontSize: 14, fontWeight: 600 }}>
                                     {saveErr}
                                 </div>
                             )}
@@ -246,12 +268,14 @@ export default function ProfilePage() {
                             <button
                                 type="submit"
                                 disabled={saving}
-                                className="px-8 py-3 rounded-xl text-sm font-semibold text-white brand-gradient hover:opacity-90 transition-all disabled:opacity-60 flex items-center space-x-2"
+                                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, padding: "14px 24px", borderRadius: 999, background: dark, color: white, fontFamily: SW, fontSize: 15, fontWeight: 700, border: "none", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1, transition: "all 0.2s", boxShadow: "0 4px 12px rgba(8,11,15,0.2)", marginTop: 8 }}
+                                onMouseEnter={e => { if(!saving){ e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(8,11,15,0.3)"; } }}
+                                onMouseLeave={e => { if(!saving){ e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(8,11,15,0.2)"; } }}
                             >
                                 {saving ? (
-                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    <div style={{ width: 18, height: 18, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: white, borderRadius: "50%" }} className="animate-spin" />
                                 ) : (
-                                    <CheckCircleIcon className="w-4 h-4" />
+                                    <CheckCircleIcon style={{ width: 20, height: 20 }} />
                                 )}
                                 <span>{saving ? 'Saving…' : 'Save Changes'}</span>
                             </button>
@@ -259,35 +283,54 @@ export default function ProfilePage() {
                     </div>
 
                     {/* ── Account Section ── */}
-                    <div
-                        className="bg-white rounded-2xl p-6"
-                        style={{ border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
-                    >
-                        <h3 className="text-base font-bold mb-4" style={{ color: '#111827' }}>Account</h3>
-                        <div className="space-y-3">
+                    <div style={{ background: white, borderRadius: 24, padding: 32, border: "1px solid rgba(255,255,255,0.8)", boxShadow: "0 10px 40px rgba(0,0,0,0.04)" }}>
+                        <h3 style={{ fontFamily: SG, fontSize: 24, fontWeight: 800, color: dark, letterSpacing: "-0.5px", marginBottom: 24 }}>Account</h3>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                             {memberSince && (
-                                <div className="flex justify-between items-center py-2" style={{ borderBottom: '1px solid #F3F4F6' }}>
-                                    <span className="text-sm" style={{ color: '#6B7280' }}>Member since</span>
-                                    <span className="text-sm font-semibold" style={{ color: '#111827' }}>{memberSince}</span>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: 16, borderBottom: `1px solid ${borderCol}` }}>
+                                    <span style={{ fontSize: 14, fontWeight: 600, color: gray }}>Member since</span>
+                                    <span style={{ fontSize: 14, fontWeight: 800, color: dark }}>{memberSince}</span>
                                 </div>
                             )}
-                            <div className="flex justify-between items-center py-2" style={{ borderBottom: '1px solid #F3F4F6' }}>
-                                <span className="text-sm" style={{ color: '#6B7280' }}>Account status</span>
-                                <span
-                                    className="px-2.5 py-1 rounded-full text-xs font-semibold"
-                                    style={{ backgroundColor: '#D1FAE5', color: '#059669' }}
-                                >
-                                    Active
-                                </span>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: 16, borderBottom: `1px solid ${borderCol}` }}>
+                                <span style={{ fontSize: 14, fontWeight: 600, color: gray }}>Account status</span>
+                                <span style={{ padding: "4px 12px", borderRadius: 999, background: "#ecfdf5", color: "#059669", fontSize: 12, fontWeight: 800 }}>Active</span>
                             </div>
-                            <div className="flex justify-between items-center py-2">
-                                <span className="text-sm" style={{ color: '#6B7280' }}>Plan</span>
-                                <span className="text-sm font-semibold" style={{ color: '#111827' }}>Free</span>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                <span style={{ fontSize: 14, fontWeight: 600, color: gray }}>Plan</span>
+                                <span style={{ fontSize: 14, fontWeight: 800, color: dark }}>Free</span>
                             </div>
                         </div>
                     </div>
                 </div>
             </main>
+        </div>
+    );
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function InfoRow({ icon, label, value }) {
+    return (
+        <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 20px", borderRadius: 16, background: "#f8fafc", border: `1px solid #e8e8e8` }}>
+            {icon}
+            <div>
+                <p style={{ fontSize: 11, fontWeight: 700, color: "#4b5b63", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>{label}</p>
+                <p style={{ fontSize: 15, fontWeight: 600, color: "#080b0f" }}>{value}</p>
+            </div>
+        </div>
+    );
+}
+
+function FormField({ label, hint, required, children }) {
+    return (
+        <div>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#080b0f", marginBottom: 8 }}>
+                {label}{' '}
+                {hint && <span style={{ color: "#4b5b63", fontWeight: 500 }}>{hint}</span>}
+                {required && <span style={{ color: "#dc2626" }}> *</span>}
+            </label>
+            {children}
         </div>
     );
 }

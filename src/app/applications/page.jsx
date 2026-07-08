@@ -1,51 +1,64 @@
 "use client";
 
-// Applications — Kanban board with drag-and-drop status columns
+// Applications — Tabbed List View
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import SkeletonLoader from "@/components/SkeletonLoader";
-import { CalendarIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { CalendarIcon, TrashIcon, BriefcaseIcon, BuildingOfficeIcon, MagnifyingGlassIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
 import { applicationService } from "@/services/api";
 import { getErrorMessage } from "@/utils/errorMessage";
 
-// Column definitions with their display colors
-const COLUMNS = [
-    { key: "Applied",     label: "Applied",     dot: "#4F46E5", bg: "#EEF2FF", badge: "#4F46E5"  },
-    { key: "In Progress", label: "In Review",   dot: "#D97706", bg: "#FEF3C7", badge: "#D97706"  },
-    { key: "Interview",   label: "Interview",   dot: "#059669", bg: "#D1FAE5", badge: "#059669"  },
-    { key: "Rejected",    label: "Rejected",    dot: "#DC2626", bg: "#FEE2E2", badge: "#DC2626"  },
-];
+const SG = "'Special Gothic', sans-serif";
+const SW = "'Switzer', sans-serif";
+const dark = "#080b0f";
+const gray = "#4b5b63";
+const white = "#ffffff";
+const borderCol = "rgba(255,255,255,0.6)";
 
-// Distribute applications into the four columns by status
-const groupByStatus = (list) => {
-    const map = { Applied: [], "In Progress": [], Interview: [], Rejected: [] };
-    list.forEach((app) => {
-        const key =
-            app.status === "Interviewing" ? "Interview"
-            : map[app.status] !== undefined ? app.status
-            : "Applied";
-        map[key].push(app);
-    });
-    return map;
+const TABS = ["All", "Applied", "In Review", "Interview", "Offered", "Rejected"];
+
+const STATUS_CONFIG = {
+    "Applied":      { dot: "#4F46E5", bg: "rgba(79,70,229,0.1)",  color: "#4F46E5" },
+    "In Progress":  { dot: "#D97706", bg: "rgba(217,119,6,0.1)",  color: "#D97706" },
+    "In Review":    { dot: "#D97706", bg: "rgba(217,119,6,0.1)",  color: "#D97706" },
+    "Interview":    { dot: "#059669", bg: "rgba(5,150,105,0.1)",  color: "#059669" },
+    "Interviewing": { dot: "#059669", bg: "rgba(5,150,105,0.1)",  color: "#059669" },
+    "Offered":      { dot: "#0284c7", bg: "rgba(2,132,199,0.1)",  color: "#0284c7" },
+    "Rejected":     { dot: "#DC2626", bg: "rgba(220,38,38,0.1)",  color: "#DC2626" },
 };
+
+// Backend status values (sent to API)
+const STATUS_OPTIONS = [
+    { value: "APPLIED",     label: "Applied"    },
+    { value: "IN_PROGRESS", label: "In Review"  },
+    { value: "INTERVIEW",   label: "Interview"  },
+    { value: "OFFERED",     label: "Offered"    },
+    { value: "REJECTED",    label: "Rejected"   },
+];
 
 export default function ApplicationsPage() {
     const router = useRouter();
-    const [columns, setColumns]   = useState({ Applied: [], "In Progress": [], Interview: [], Rejected: [] });
-    const [loading, setLoading]   = useState(true);
-    const [error, setError]       = useState("");
-    const [dragging, setDragging] = useState(null);
+    const [applications, setApplications] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+    const [activeTab, setActiveTab] = useState("All");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [updatingId, setUpdatingId] = useState(null); // track which row is being updated
 
     useEffect(() => {
-        // Auth guard
         const token = localStorage.getItem("applync_token");
         if (!token) { router.replace("/login"); return; }
 
         const fetchApps = async () => {
             try {
                 const res = await applicationService.getAll();
-                setColumns(groupByStatus(res.data || []));
+                // Map backend statuses to UI friendly ones if needed
+                const formatted = (res.data || []).map(app => ({
+                    ...app,
+                    uiStatus: app.status === "In Progress" ? "In Review" : app.status === "Interviewing" ? "Interview" : app.status
+                }));
+                setApplications(formatted);
             } catch (err) {
                 if (err.response?.status !== 401)
                     setError(getErrorMessage(err));
@@ -56,200 +69,231 @@ export default function ApplicationsPage() {
         fetchApps();
     }, [router]);
 
-    // Drag-and-drop handlers
-    const onDragStart = (card, fromCol) => setDragging({ card, fromCol });
-
-    const onDrop = async (toCol) => {
-        if (!dragging || dragging.fromCol === toCol) return;
-        // Optimistic UI update
-        const from = columns[dragging.fromCol].filter((c) => c.id !== dragging.card.id);
-        const to   = [...columns[toCol], { ...dragging.card, status: toCol }];
-        setColumns({ ...columns, [dragging.fromCol]: from, [toCol]: to });
-        setDragging(null);
+    const handleDelete = async (id) => {
+        const previous = [...applications];
+        setApplications(applications.filter(app => app.id !== id));
         try {
-            await applicationService.updateStatus(dragging.card.id, toCol);
+            await applicationService.delete(id);
         } catch {
-            // Revert on failure
-            setColumns((prev) => ({
-                ...prev,
-                [toCol]:              prev[toCol].filter((c) => c.id !== dragging.card.id),
-                [dragging.fromCol]:   [...prev[dragging.fromCol], dragging.card],
-            }));
+            setApplications(previous);
         }
     };
 
-    // DELETE /api/v1/applications/{id} — remove card from column optimistically
-    const handleDelete = async (card, colKey) => {
-        // Optimistic removal from UI
-        setColumns((prev) => ({
-            ...prev,
-            [colKey]: prev[colKey].filter((c) => c.id !== card.id),
-        }));
+    const handleStatusChange = async (id, newBackendStatus) => {
+        const labelMap = { APPLIED: "Applied", IN_PROGRESS: "In Review", INTERVIEW: "Interview", OFFERED: "Offered", REJECTED: "Rejected" };
+        const newUiStatus = labelMap[newBackendStatus] || newBackendStatus;
+        const previous = [...applications];
+        // Optimistic update
+        setApplications(apps => apps.map(a => a.id === id ? { ...a, status: newBackendStatus, uiStatus: newUiStatus } : a));
+        setUpdatingId(id);
         try {
-            await applicationService.delete(card.id);
+            await applicationService.updateStatus(id, newBackendStatus);
         } catch {
-            // Revert on failure
-            setColumns((prev) => ({
-                ...prev,
-                [colKey]: [...prev[colKey], card],
-            }));
+            setApplications(previous);
+        } finally {
+            setUpdatingId(null);
         }
     };
 
-    const total = Object.values(columns).reduce((s, a) => s + a.length, 0);
+    // Filter logic
+    const filteredApps = applications.filter(app => {
+        const matchesTab = activeTab === "All" || app.uiStatus === activeTab;
+        const searchLower = searchQuery.toLowerCase();
+        const matchesSearch = !searchQuery || 
+            (app.company && app.company.toLowerCase().includes(searchLower)) ||
+            (app.position && app.position.toLowerCase().includes(searchLower)) ||
+            (app.role && app.role.toLowerCase().includes(searchLower));
+        return matchesTab && matchesSearch;
+    });
+
+    const currentDate = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 
     return (
-        <div className="flex min-h-screen" style={{ backgroundColor: "#F8FAFC" }}>
+        <div style={{ display: "flex", minHeight: "100vh", fontFamily: SW, background: "linear-gradient(to bottom, #d5ecfa, #e9f2f9)" }}>
             <Sidebar />
 
-            <main className="flex-1 lg:ml-64 p-6 lg:p-8 overflow-x-hidden">
+            <main style={{ flex: 1, padding: "32px 48px", marginLeft: "256px" }} className="lg:ml-64 p-6 lg:p-8 overflow-x-hidden">
                 {/* ── Page Header ── */}
-                <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 40 }} className="flex-col md:flex-row gap-4">
                     <div>
-                        <h1 className="text-2xl font-black" style={{ color: "#111827" }}>My Applications</h1>
-                        <p className="text-sm mt-0.5" style={{ color: "#6B7280" }}>
-                            Tracking {total} application{total !== 1 ? "s" : ""}.
+                        <h1 style={{ fontFamily: SG, fontSize: 36, fontWeight: 800, color: dark, letterSpacing: "-1px", marginBottom: 4 }}>
+                            My Applications
+                        </h1>
+                        <p style={{ fontFamily: SW, fontSize: 16, color: gray }}>
+                            Tracking <span style={{ color: dark, fontWeight: 800 }}>{applications.length}</span> active application{applications.length !== 1 ? "s" : ""}.
                         </p>
                     </div>
                     {/* Date badge */}
                     <div
-                        className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-white text-sm font-medium"
-                        style={{ border: "1px solid #E5E7EB", color: "#6B7280" }}
+                        style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 999, background: white, border: `1px solid rgba(255,255,255,0.8)`, boxShadow: "0 4px 12px rgba(0,0,0,0.02)", color: dark, fontSize: 14, fontWeight: 700 }}
                     >
-                        <CalendarIcon className="w-4 h-4" />
-                        <span>Jun 2026</span>
+                        <CalendarIcon style={{ width: 16, height: 16 }} />
+                        <span>{currentDate}</span>
                     </div>
                 </header>
 
-                {/* Error banner */}
                 {error && (
-                    <div
-                        className="mb-6 px-4 py-3 rounded-xl text-sm font-medium"
-                        style={{ backgroundColor: "#FEE2E2", color: "#DC2626", border: "1px solid #FECACA" }}
-                    >
+                    <div style={{ marginBottom: 24, padding: "12px 16px", borderRadius: 12, background: "#fef2f2", color: "#991b1b", border: "1px solid #fecaca", fontSize: 14, fontWeight: 600 }}>
                         {error}
                     </div>
                 )}
 
-                {/* ── Kanban Board ── */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
-                    {COLUMNS.map((col) => (
-                        <div
-                            key={col.key}
-                            onDragOver={(e) => e.preventDefault()}
-                            onDrop={() => onDrop(col.key)}
-                            className="flex flex-col rounded-2xl p-4 min-h-[520px]"
-                            style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
-                        >
-                            {/* Column header */}
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center space-x-2">
-                                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: col.dot }} />
-                                    <h3 className="text-sm font-bold" style={{ color: "#111827" }}>{col.label}</h3>
-                                </div>
-                                {/* Count badge */}
-                                <span
-                                    className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                                    style={{ backgroundColor: col.bg, color: col.badge }}
+                {/* ── Tabs & Search ── */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }} className="flex-col md:flex-row gap-4">
+                    {/* Tabs */}
+                    <div style={{ display: "flex", gap: 8, background: "rgba(255,255,255,0.4)", backdropFilter: "blur(20px)", padding: 6, borderRadius: 999, border: "1px solid rgba(255,255,255,0.6)" }} className="overflow-x-auto w-full md:w-auto">
+                        {TABS.map(tab => {
+                            const isActive = activeTab === tab;
+                            const count = tab === "All" ? applications.length : applications.filter(a => a.uiStatus === tab).length;
+                            return (
+                                <button
+                                    key={tab}
+                                    onClick={() => setActiveTab(tab)}
+                                    style={{ 
+                                        padding: "8px 20px", borderRadius: 999, border: "none", cursor: "pointer", 
+                                        fontFamily: SW, fontSize: 14, fontWeight: isActive ? 800 : 600,
+                                        background: isActive ? white : "transparent",
+                                        color: isActive ? dark : gray,
+                                        boxShadow: isActive ? "0 2px 8px rgba(0,0,0,0.05)" : "none",
+                                        transition: "all 0.2s",
+                                        display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap"
+                                    }}
                                 >
-                                    {columns[col.key].length}
-                                </span>
-                            </div>
+                                    {tab}
+                                    {count > 0 && (
+                                        <span style={{ background: isActive ? dark : "rgba(8,11,15,0.1)", color: isActive ? white : gray, padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 800 }}>
+                                            {count}
+                                        </span>
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
 
-                            {/* Application cards */}
-                            <div className="flex-1 space-y-3">
-                                {loading ? (
-                                    <SkeletonLoader type="kanban" count={2} />
-                                ) : columns[col.key].length > 0 ? (
-                                    columns[col.key].map((card) => (
-                                        <div
-                                            key={card.id}
-                                            draggable
-                                            onDragStart={() => onDragStart(card, col.key)}
-                                            className="p-4 rounded-xl cursor-grab active:cursor-grabbing transition-all hover:-translate-y-0.5 hover:shadow-md"
-                                            style={{
-                                                backgroundColor: "#F9FAFB",
-                                                border: "1px solid #E5E7EB",
-                                                opacity: dragging?.card.id === card.id ? 0.5 : 1,
-                                            }}
-                                        >
-                                            {/* Company initial avatar + date + delete */}
-                                            <div className="flex items-start justify-between mb-2">
-                                                <div
-                                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white brand-gradient shrink-0"
-                                                >
-                                                    {(card.company || "?")[0].toUpperCase()}
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] font-medium" style={{ color: "#9CA3AF" }}>
-                                                        {card.date || card.appliedDate || ""}
-                                                    </span>
-                                                    {/* DELETE /api/v1/applications/{id} */}
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); handleDelete(card, col.key); }}
-                                                        className="p-1 rounded-lg transition-colors hover:bg-red-50"
-                                                        style={{ color: "#D1D5DB" }}
-                                                        title="Delete application"
-                                                    >
-                                                        <TrashIcon className="w-3.5 h-3.5 hover:text-red-400" />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            {/* Job info */}
-                                            <p className="text-sm font-bold mt-2" style={{ color: "#111827" }}>{card.company}</p>
-                                            <p className="text-xs mt-0.5" style={{ color: "#6B7280" }}>{card.position || card.role}</p>
-                                            {/* Status pill */}
-                                            <div className="mt-3">
-                                                <span
-                                                    className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-semibold"
-                                                    style={{ backgroundColor: col.bg, color: col.badge }}
-                                                >
-                                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: col.dot }} />
-                                                    <span>{col.label}</span>
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    // Empty drop zone
-                                    <div
-                                        className="flex items-center justify-center h-24 rounded-xl"
-                                        style={{ border: "2px dashed #E5E7EB" }}
-                                    >
-                                        <p className="text-xs" style={{ color: "#D1D5DB" }}>Drop here</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    ))}
+                    {/* Search */}
+                    <div style={{ position: "relative", width: "100%", maxWidth: 300 }}>
+                        <MagnifyingGlassIcon style={{ width: 18, height: 18, color: gray, position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)" }} />
+                        <input
+                            type="text"
+                            placeholder="Search company or role..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            style={{ 
+                                width: "100%", padding: "12px 16px 12px 44px", borderRadius: 999, border: "1px solid rgba(255,255,255,0.8)",
+                                background: white, fontFamily: SW, fontSize: 14, color: dark, outline: "none",
+                                boxShadow: "0 2px 8px rgba(0,0,0,0.02)", transition: "all 0.2s"
+                            }}
+                            onFocus={(e) => { e.target.style.boxShadow = "0 4px 16px rgba(0,0,0,0.05)"; }}
+                            onBlur={(e)  => { e.target.style.boxShadow = "0 2px 8px rgba(0,0,0,0.02)"; }}
+                        />
+                    </div>
                 </div>
 
-                {/* ── Weekly Stats Summary ── */}
-                <div
-                    className="mt-8 p-6 rounded-2xl bg-white"
-                    style={{ border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
-                >
-                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                        <div>
-                            <h3 className="text-base font-bold" style={{ color: "#111827" }}>Weekly Progress</h3>
-                            <p className="text-sm mt-0.5" style={{ color: "#6B7280" }}>
-                                You applied to 5 more jobs than last week. Keep it up!
-                            </p>
-                        </div>
-                        <div className="flex items-center space-x-8">
-                            {[["12", "Applications", "#4F46E5"], ["3", "Interviews", "#059669"]].map(([v, l, c]) => (
-                                <div key={l} className="text-center">
-                                    <span className="text-2xl font-black" style={{ color: c }}>{v}</span>
-                                    <p className="text-[10px] uppercase font-semibold tracking-wider mt-0.5" style={{ color: "#9CA3AF" }}>{l}</p>
+                {/* ── List View ── */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingBottom: 40 }}>
+                    {loading ? (
+                        <SkeletonLoader type="table" count={5} />
+                    ) : filteredApps.length > 0 ? (
+                        filteredApps.map((app) => {
+                            const statusStyle = STATUS_CONFIG[app.uiStatus] || STATUS_CONFIG["Applied"];
+                            
+                            return (
+                                <div
+                                    key={app.id}
+                                    style={{
+                                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                                        background: white, padding: "20px 24px", borderRadius: 20,
+                                        border: "1px solid rgba(255,255,255,0.8)", boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
+                                        transition: "all 0.2s", cursor: "default"
+                                    }}
+                                    onMouseEnter={e => {
+                                        e.currentTarget.style.transform = "translateY(-2px)";
+                                        e.currentTarget.style.boxShadow = "0 12px 24px rgba(0,0,0,0.06)";
+                                    }}
+                                    onMouseLeave={e => {
+                                        e.currentTarget.style.transform = "none";
+                                        e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.03)";
+                                    }}
+                                >
+                                    <div style={{ display: "flex", alignItems: "center", gap: 20, flex: 1 }}>
+                                        {/* Avatar */}
+                                        <div style={{ width: 56, height: 56, borderRadius: 16, background: dark, color: white, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SG, fontSize: 24, fontWeight: 800, flexShrink: 0 }}>
+                                            {(app.company || "?")[0].toUpperCase()}
+                                        </div>
+                                        
+                                        {/* Info */}
+                                        <div>
+                                            <h3 style={{ fontFamily: SG, fontSize: 20, fontWeight: 800, color: dark, letterSpacing: "-0.5px", marginBottom: 2 }}>{app.company}</h3>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                                <div style={{ display: "flex", alignItems: "center", gap: 4, color: gray, fontSize: 14, fontWeight: 600 }}>
+                                                    <BriefcaseIcon style={{ width: 14, height: 14 }} />
+                                                    {app.position || app.role || "Unknown Role"}
+                                                </div>
+                                                <span style={{ color: "rgba(8,11,15,0.2)" }}>•</span>
+                                                <div style={{ display: "flex", alignItems: "center", gap: 4, color: gray, fontSize: 13, fontWeight: 600 }}>
+                                                    <CalendarIcon style={{ width: 14, height: 14 }} />
+                                                    {app.date || app.appliedDate || "Recently Applied"}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Status dropdown & Delete */}
+                                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                        {/* Clickable status dropdown */}
+                                        <div style={{ position: "relative" }}>
+                                            <select
+                                                value={app.status || "APPLIED"}
+                                                onChange={(e) => handleStatusChange(app.id, e.target.value)}
+                                                disabled={updatingId === app.id}
+                                                style={{
+                                                    appearance: "none",
+                                                    WebkitAppearance: "none",
+                                                    padding: "8px 32px 8px 12px",
+                                                    borderRadius: 999,
+                                                    border: `1.5px solid ${statusStyle.color}`,
+                                                    background: statusStyle.bg,
+                                                    color: statusStyle.color,
+                                                    fontSize: 12, fontWeight: 800,
+                                                    fontFamily: SW,
+                                                    textTransform: "uppercase",
+                                                    letterSpacing: "0.05em",
+                                                    cursor: updatingId === app.id ? "wait" : "pointer",
+                                                    outline: "none",
+                                                    transition: "all 0.2s",
+                                                    minWidth: 110,
+                                                    opacity: updatingId === app.id ? 0.6 : 1,
+                                                }}
+                                            >
+                                                {STATUS_OPTIONS.map(opt => (
+                                                    <option key={opt.value} value={opt.value} style={{ background: white, color: dark, fontWeight: 600, textTransform: "none", letterSpacing: 0 }}>
+                                                        {opt.label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <ChevronDownIcon style={{ width: 12, height: 12, color: statusStyle.color, position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+                                        </div>
+
+                                        <button
+                                            onClick={() => handleDelete(app.id)}
+                                            style={{ padding: 10, borderRadius: 12, border: "none", background: "#fef2f2", color: "#ef4444", cursor: "pointer", transition: "all 0.2s" }}
+                                            onMouseEnter={e => { e.currentTarget.style.background = "#fca5a5"; e.currentTarget.style.color = "#991b1b"; }}
+                                            onMouseLeave={e => { e.currentTarget.style.background = "#fef2f2"; e.currentTarget.style.color = "#ef4444"; }}
+                                            title="Delete Application"
+                                        >
+                                            <TrashIcon style={{ width: 18, height: 18 }} />
+                                        </button>
+                                    </div>
                                 </div>
-                            ))}
+                            );
+                        })
+                    ) : (
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "64px 20px", background: "rgba(255,255,255,0.4)", borderRadius: 24, border: "2px dashed rgba(255,255,255,0.8)" }}>
+                            <BuildingOfficeIcon style={{ width: 48, height: 48, color: "rgba(8,11,15,0.2)", marginBottom: 16 }} />
+                            <h3 style={{ fontFamily: SG, fontSize: 24, fontWeight: 800, color: dark, marginBottom: 4 }}>No applications found</h3>
+                            <p style={{ fontSize: 15, color: gray }}>We couldn't find any applications matching your criteria.</p>
                         </div>
-                        <button
-                            className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white brand-gradient hover:opacity-90 transition-all"
-                        >
-                            Download Report
-                        </button>
-                    </div>
+                    )}
                 </div>
             </main>
         </div>

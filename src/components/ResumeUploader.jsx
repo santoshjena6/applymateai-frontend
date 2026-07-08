@@ -33,15 +33,19 @@ const ResumeUploader = () => {
 
     const simulateUpload = () => {
         setUploading(true);
-        let currentProgress = 0;
+        setProgress(0); // Ensure progress starts at 0
+        
         const interval = setInterval(() => {
-            currentProgress += 10;
-            setProgress(currentProgress);
-            if (currentProgress >= 100) {
-                clearInterval(interval);
-                setUploading(false);
-            }
-        }, 80);
+            setProgress((prev) => {
+                const next = prev + Math.floor(Math.random() * 10) + 5; // Add 5-15% randomly
+                if (next >= 100) {
+                    clearInterval(interval);
+                    setUploading(false);
+                    return 100;
+                }
+                return next;
+            });
+        }, 400); // Slower interval (400ms) to simulate actual scanning/processing
     };
 
     const removeFile = () => {

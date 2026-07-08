@@ -11,7 +11,7 @@ const CATEGORY_STYLE = {
 };
 
 const JobCard = (props) => {
-    const { isSelected, onSelect, index, job } = props;
+    const { isSelected, onSelect, index, job, onApply } = props;
 
     // Support both flat props and nested job object
     const role        = props.role        || job?.role        || job?.title;
@@ -105,15 +105,19 @@ const JobCard = (props) => {
                     <span className="text-[10px] font-semibold uppercase tracking-wider block mb-0.5" style={{ color: "#9CA3AF" }}>Source</span>
                     <span className="text-xs font-semibold" style={{ color: "#6B7280" }}>{source || "Direct"}</span>
                 </div>
-                <motion.a
+                <motion.button
                     whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
-                    href={applyLink} target="_blank" rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        const link = applyLink || `https://www.google.com/search?q=${encodeURIComponent((role || '') + ' ' + (company || '') + ' job apply India')}`;
+                        window.open(link, "_blank", "noopener,noreferrer");
+                        onApply?.({ role, company, location, applyLink: link, source });
+                    }}
                     className="flex items-center space-x-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold text-white brand-gradient hover:opacity-90 transition-all"
                 >
                     <span>Apply</span>
                     <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
-                </motion.a>
+                </motion.button>
             </div>
         </motion.div>
     );

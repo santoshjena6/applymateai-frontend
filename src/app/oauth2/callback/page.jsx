@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { setAuthCookie } from "@/utils/authCookie";
 
 function OAuth2CallbackInner() {
     const searchParams = useSearchParams();
@@ -20,6 +21,7 @@ function OAuth2CallbackInner() {
 
         // Store access token immediately
         localStorage.setItem("applync_token", token);
+        setAuthCookie();
 
         // Check if this user already has a resume uploaded
         // — if yes, grab jobCategory; if no, send them to resume-upload first

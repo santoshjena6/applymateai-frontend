@@ -5,6 +5,13 @@ import Sidebar from "@/components/Sidebar";
 import { CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
 import { ShieldCheckIcon, BoltIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 
+const SG = "'Special Gothic', sans-serif";
+const SW = "'Switzer', sans-serif";
+const dark = "#080b0f";
+const gray = "#4b5b63";
+const white = "#ffffff";
+const borderCol = "rgba(255,255,255,0.6)";
+
 function HeadsetIcon(props) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
@@ -60,7 +67,7 @@ const pricingPlans = [
         popular: false,
     },
     {
-        name: "Enterprise Plan",
+        name: "Enterprise",
         desc: "For large organizations",
         price: "Custom",
         features: [
@@ -80,108 +87,85 @@ export default function PricingPage() {
     const [isYearly, setIsYearly] = useState(false);
 
     return (
-        <div className="flex h-screen bg-background overflow-hidden">
+        <div style={{ display: "flex", minHeight: "100vh", fontFamily: SW, background: "linear-gradient(to bottom, #d5ecfa, #e9f2f9)" }}>
             <Sidebar />
             
-            <main className="flex-1 lg:ml-64 bg-[#FAFBFF] overflow-hidden flex flex-col justify-center px-4 py-2">
-                <div className="w-full max-w-6xl mx-auto transform scale-[0.85] 2xl:scale-100 origin-center">
+            <main style={{ flex: 1, padding: "60px 48px", marginLeft: "256px", display: "flex", flexDirection: "column" }} className="lg:ml-64 p-6 lg:p-12 overflow-x-hidden">
+                <div style={{ maxWidth: 1200, margin: "0 auto", width: "100%" }}>
+                    
                     {/* Header */}
-                    <div className="text-center mb-6 relative">
-                        {/* Sparkles */}
-                        <div className="absolute top-0 left-[20%] hidden lg:block">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M12 0L13.8868 8.11319L22 10L13.8868 11.8868L12 20L10.1132 11.8868L2 10L10.1132 8.11319L12 0Z" fill="#4F46E5"/>
-                            </svg>
+                    <div style={{ textAlign: "center", marginBottom: 60, position: "relative" }}>
+                        <div style={{ display: "inline-block", padding: "8px 16px", borderRadius: 999, background: "rgba(255,255,255,0.6)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.8)", marginBottom: 16 }}>
+                            <span style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", color: dark }}>Pricing Plans</span>
                         </div>
-                        <div className="absolute top-12 left-[21%] hidden lg:block opacity-30">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M12 0L13.8868 8.11319L22 10L13.8868 11.8868L12 20L10.1132 11.8868L2 10L10.1132 8.11319L12 0Z" fill="#4F46E5"/>
-                            </svg>
-                        </div>
-                        <div className="absolute top-10 right-[20%] hidden lg:block">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M12 0L13.8868 8.11319L22 10L13.8868 11.8868L12 20L10.1132 11.8868L2 10L10.1132 8.11319L12 0Z" fill="#4F46E5"/>
-                            </svg>
-                        </div>
-                        <div className="absolute top-[4.5rem] right-[23%] hidden lg:block opacity-80">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M12 0L13.8868 8.11319L22 10L13.8868 11.8868L12 20L10.1132 11.8868L2 10L10.1132 8.11319L12 0Z" fill="#4F46E5"/>
-                            </svg>
-                        </div>
-
-                        <div className="inline-block px-3 py-1 rounded-full mb-3" style={{ backgroundColor: "#EEF2FF" }}>
-                            <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#4F46E5" }}>Pricing Plans</span>
-                        </div>
-                        <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-2 text-gray-900">
-                            Simple Plans, <span style={{ color: "#4F46E5" }}>Powerful Results</span>
+                        <h2 style={{ fontFamily: SG, fontSize: 48, fontWeight: 800, color: dark, letterSpacing: "-1.5px", marginBottom: 12 }}>
+                            Simple Plans, <span style={{ color: "#3a7ca5" }}>Powerful Results</span>
                         </h2>
-                        <p className="text-sm text-gray-500 max-w-2xl mx-auto">
+                        <p style={{ fontSize: 16, color: gray, maxWidth: 600, margin: "0 auto", fontWeight: 500 }}>
                             Choose the perfect plan to speed up your job search and land your dream role.
                         </p>
                         
                         {/* Toggle */}
-                        <div className="flex items-center justify-center mt-4 space-x-3">
-                            <span className={`text-sm font-semibold ${!isYearly ? 'text-gray-900' : 'text-gray-500'}`}>Monthly</span>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginTop: 32, gap: 16 }}>
+                            <span style={{ fontSize: 15, fontWeight: 700, color: !isYearly ? dark : gray, transition: "color 0.2s" }}>Monthly</span>
                             <div 
-                                className="relative w-12 h-6 rounded-full cursor-pointer transition-colors" 
-                                style={{ backgroundColor: "#4F46E5" }}
+                                style={{ width: 56, height: 32, borderRadius: 999, background: dark, position: "relative", cursor: "pointer", border: "2px solid rgba(255,255,255,0.5)" }}
                                 onClick={() => setIsYearly(!isYearly)}
                             >
-                                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 ${isYearly ? 'left-7' : 'left-1'}`}></div>
+                                <div style={{ width: 24, height: 24, borderRadius: "50%", background: white, position: "absolute", top: 2, left: isYearly ? 26 : 2, transition: "left 0.3s cubic-bezier(0.4, 0, 0.2, 1)", boxShadow: "0 2px 4px rgba(0,0,0,0.2)" }} />
                             </div>
-                            <span className={`text-sm font-semibold relative ${isYearly ? 'text-gray-900' : 'text-gray-500'}`}>
-                                Yearly <span style={{ color: "#4F46E5" }}>(Save 20%)</span>
-                                
-                                {/* Hand drawn arrow */}
-                                <div className="absolute -right-14 -top-3 w-10 h-8 hidden sm:block">
-                                    <svg width="100%" height="100%" viewBox="0 0 40 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M38 2C26 0 14 7 3 15M3 15L11 14M3 15L6 22" stroke="#4F46E5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                    </svg>
-                                </div>
+                            <span style={{ fontSize: 15, fontWeight: 700, color: isYearly ? dark : gray, position: "relative", transition: "color 0.2s" }}>
+                                Yearly <span style={{ color: "#059669", background: "#d1fae5", padding: "2px 8px", borderRadius: 999, fontSize: 12, marginLeft: 6 }}>Save 20%</span>
                             </span>
                         </div>
                     </div>
 
                     {/* Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 max-w-6xl mx-auto mb-6">
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 24, marginBottom: 64 }}>
                         {pricingPlans.map((plan, i) => (
                             <div 
                                 key={i} 
-                                className={`relative flex flex-col p-6 rounded-2xl bg-white ${plan.popular ? 'shadow-lg scale-105 z-10' : 'shadow-sm hover:shadow-md'}`}
                                 style={{ 
-                                    border: plan.popular ? "2px solid #4F46E5" : "1px solid #E5E7EB",
-                                    transition: "all 0.2s"
+                                    position: "relative", display: "flex", flexDirection: "column", padding: 32, borderRadius: 32, 
+                                    background: plan.popular ? dark : "rgba(255,255,255,0.6)", 
+                                    backdropFilter: plan.popular ? "none" : "blur(20px)",
+                                    border: plan.popular ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(255,255,255,0.8)",
+                                    boxShadow: plan.popular ? "0 24px 64px rgba(8,11,15,0.2)" : "0 10px 40px rgba(0,0,0,0.04)",
+                                    transform: plan.popular ? "scale(1.02)" : "scale(1)",
+                                    zIndex: plan.popular ? 10 : 1
                                 }}
                             >
                                 {plan.popular && (
-                                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-3 py-1 rounded-full brand-gradient">
-                                        <span className="text-[10px] font-bold text-white tracking-wider">Most Popular</span>
+                                    <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", padding: "6px 16px", borderRadius: 999, background: "linear-gradient(135deg, #3a7ca5, #1e4f6d)", boxShadow: "0 4px 12px rgba(58,124,165,0.4)" }}>
+                                        <span style={{ fontSize: 11, fontWeight: 800, color: white, textTransform: "uppercase", letterSpacing: "0.1em" }}>Most Popular</span>
                                     </div>
                                 )}
                                 
-                                <div className="mb-4">
-                                    <h3 className="text-lg font-bold text-gray-900 mb-0.5">{plan.name}</h3>
-                                    <p className="text-[11px] text-gray-500 mb-3">{plan.desc}</p>
-                                    <div className="flex items-baseline gap-1">
-                                        <span className="text-2xl font-black" style={{ color: plan.popular ? "#4F46E5" : "#4F46E5" }}>
+                                <div style={{ marginBottom: 32 }}>
+                                    <h3 style={{ fontFamily: SG, fontSize: 24, fontWeight: 800, color: plan.popular ? white : dark, marginBottom: 4 }}>{plan.name}</h3>
+                                    <p style={{ fontSize: 13, fontWeight: 500, color: plan.popular ? "rgba(255,255,255,0.6)" : gray, marginBottom: 20 }}>{plan.desc}</p>
+                                    <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                                        <span style={{ fontFamily: SG, fontSize: 40, fontWeight: 800, color: plan.popular ? white : dark, letterSpacing: "-1px" }}>
                                             {isYearly && plan.price !== 'Custom' && plan.price !== '₹0' ? `₹${(parseInt(plan.price.replace('₹','').replace(',','')) * 0.8).toFixed(0)}` : plan.price}
                                         </span>
-                                        <span className="text-[10px] font-medium text-gray-500">/month</span>
+                                        {plan.price !== 'Custom' && (
+                                            <span style={{ fontSize: 13, fontWeight: 700, color: plan.popular ? "rgba(255,255,255,0.5)" : gray }}>/month</span>
+                                        )}
                                     </div>
                                     {isYearly && plan.price !== 'Custom' && plan.price !== '₹0' && (
-                                        <p className="text-[10px] text-green-500 font-semibold mt-1">Billed annually</p>
+                                        <p style={{ fontSize: 12, color: "#10b981", fontWeight: 700, marginTop: 4 }}>Billed annually</p>
                                     )}
                                 </div>
 
-                                <div className="flex-grow space-y-2.5 mb-4">
+                                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16, marginBottom: 32 }}>
                                     {plan.features.map((feature, idx) => (
-                                        <div key={idx} className="flex items-start gap-2">
+                                        <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
                                             {feature.included ? (
-                                                <CheckCircleIcon className="w-4 h-4 shrink-0" style={{ color: "#4F46E5" }} />
+                                                <CheckCircleIcon style={{ width: 18, height: 18, color: plan.popular ? "#3a7ca5" : dark, flexShrink: 0, marginTop: 2 }} />
                                             ) : (
-                                                <XCircleIcon className="w-4 h-4 shrink-0 text-gray-300" />
+                                                <XCircleIcon style={{ width: 18, height: 18, color: plan.popular ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.1)", flexShrink: 0, marginTop: 2 }} />
                                             )}
-                                            <span className={`text-[12px] leading-tight ${feature.included ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
+                                            <span style={{ fontSize: 14, fontWeight: feature.included ? 600 : 500, color: feature.included ? (plan.popular ? white : dark) : (plan.popular ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)"), lineHeight: "1.4" }}>
                                                 {feature.text}
                                             </span>
                                         </div>
@@ -189,12 +173,31 @@ export default function PricingPage() {
                                 </div>
 
                                 <button 
-                                    className={`w-full py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
-                                        plan.popular 
-                                            ? "text-white hover:opacity-90 shadow-md" 
-                                            : "bg-white hover:bg-gray-50"
-                                    }`}
-                                    style={plan.popular ? { backgroundColor: "#4F46E5" } : { border: "1px solid #C7D2FE", color: "#4F46E5" }}
+                                    style={{ 
+                                        width: "100%", padding: "16px 24px", borderRadius: 16, fontFamily: SW, fontSize: 15, fontWeight: 700, cursor: "pointer", transition: "all 0.2s",
+                                        background: plan.popular ? white : "transparent",
+                                        color: plan.popular ? dark : dark,
+                                        border: plan.popular ? "none" : "2px solid rgba(8,11,15,0.1)",
+                                        boxShadow: plan.popular ? "0 8px 24px rgba(255,255,255,0.1)" : "none"
+                                    }}
+                                    onMouseEnter={e => {
+                                        e.currentTarget.style.transform = "translateY(-2px)";
+                                        if (plan.popular) e.currentTarget.style.boxShadow = "0 12px 32px rgba(255,255,255,0.15)";
+                                        else {
+                                            e.currentTarget.style.background = dark;
+                                            e.currentTarget.style.color = white;
+                                            e.currentTarget.style.borderColor = dark;
+                                        }
+                                    }}
+                                    onMouseLeave={e => {
+                                        e.currentTarget.style.transform = "none";
+                                        if (plan.popular) e.currentTarget.style.boxShadow = "0 8px 24px rgba(255,255,255,0.1)";
+                                        else {
+                                            e.currentTarget.style.background = "transparent";
+                                            e.currentTarget.style.color = dark;
+                                            e.currentTarget.style.borderColor = "rgba(8,11,15,0.1)";
+                                        }
+                                    }}
                                 >
                                     {plan.buttonText}
                                 </button>
@@ -203,43 +206,23 @@ export default function PricingPage() {
                     </div>
 
                     {/* Features Banner */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 p-4 rounded-xl bg-gray-50/50 max-w-5xl mx-auto" style={{ border: "1px solid #F3F4F6" }}>
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#EEF2FF" }}>
-                                <ShieldCheckIcon className="w-4 h-4" style={{ color: "#4F46E5" }} />
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 24, padding: 32, borderRadius: 24, background: "rgba(255,255,255,0.4)", backdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.6)", justifyContent: "space-between", boxShadow: "0 4px 24px rgba(0,0,0,0.02)" }}>
+                        {[
+                            { icon: ShieldCheckIcon, title: "Secure & Private", desc: "Your data is always safe" },
+                            { icon: BoltIcon, title: "Cancel Anytime", desc: "No hidden charges" },
+                            { icon: HeadsetIcon, title: "24/7 Support", desc: "We're here to help" },
+                            { icon: ArrowPathIcon, title: "Regular Updates", desc: "New features, always" }
+                        ].map((item, i) => (
+                            <div key={i} style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                                <div style={{ width: 48, height: 48, borderRadius: 16, background: white, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
+                                    <item.icon style={{ width: 24, height: 24, color: dark }} />
+                                </div>
+                                <div>
+                                    <h4 style={{ fontFamily: SG, fontSize: 16, fontWeight: 800, color: dark, letterSpacing: "-0.5px" }}>{item.title}</h4>
+                                    <p style={{ fontSize: 12, fontWeight: 600, color: gray, marginTop: 2 }}>{item.desc}</p>
+                                </div>
                             </div>
-                            <div>
-                                <h4 className="text-[11px] font-bold text-gray-900">Secure & Private</h4>
-                                <p className="text-[9px] text-gray-500 mt-0.5">Your data is always safe</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#EEF2FF" }}>
-                                <BoltIcon className="w-4 h-4" style={{ color: "#4F46E5" }} />
-                            </div>
-                            <div>
-                                <h4 className="text-[11px] font-bold text-gray-900">Cancel Anytime</h4>
-                                <p className="text-[9px] text-gray-500 mt-0.5">No hidden charges</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#EEF2FF" }}>
-                                <HeadsetIcon className="w-4 h-4" style={{ color: "#4F46E5" }} />
-                            </div>
-                            <div>
-                                <h4 className="text-[11px] font-bold text-gray-900">24/7 Support</h4>
-                                <p className="text-[9px] text-gray-500 mt-0.5">We're here to help</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#EEF2FF" }}>
-                                <ArrowPathIcon className="w-4 h-4" style={{ color: "#4F46E5" }} />
-                            </div>
-                            <div>
-                                <h4 className="text-[11px] font-bold text-gray-900">Regular Updates</h4>
-                                <p className="text-[9px] text-gray-500 mt-0.5">New features, always</p>
-                            </div>
-                        </div>
+                        ))}
                     </div>
                 </div>
             </main>
